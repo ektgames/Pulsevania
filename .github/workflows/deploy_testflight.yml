@@ -204,9 +204,6 @@ jobs:
           echo "Profile UUID: $PROVISION_UUID"
           echo "Team Identifier: $PROVISION_TEAM_ID"
           echo "App Identifier: $PROVISION_APP_ID"
-          
-          echo "=== ENTITLEMENTS IN PROVISIONING PROFILE ==="
-          grep -A20 "<key>Entitlements</key>" "$RUNNER_TEMP/profile_plist.xml" | head -n 25 || true
 
           if [ -n "$PROVISION_UUID" ]; then
             cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROVISION_UUID.mobileprovision"
@@ -240,8 +237,8 @@ jobs:
           echo "Provisioning Profile Name: $PROVISION_NAME"
           echo "Provisioning Profile UUID: $PROVISION_UUID"
 
-          # Target-specific signing patch via robust section block Python parser
-          python3 - << 'EOF'
+          # Target-specific signing patch for application target 1D6058900D05DD3D006BFB54 / 1D6058960D05DD3E006BFB54
+          python3 - << 'PYEOF'
           import os, re, sys
 
           pbx_path = "Unity-iPhone.xcodeproj/project.pbxproj"
@@ -257,7 +254,7 @@ jobs:
           with open(pbx_path, "r") as f:
               content = f.read()
 
-          # 1. Parse PBXNativeTarget section to find GUIDs and buildConfigurationList GUIDs
+          # 1. Parse PBXNativeTarget section
           native_match = re.search(r'/\* Begin PBXNativeTarget section \*/([\s\S]*?)/\*\s*End PBXNativeTarget section \*/', content)
           if not native_match:
               print("Error: PBXNativeTarget section not found!")
@@ -270,7 +267,7 @@ jobs:
           framework_target_guid = None
           framework_config_list_guid = None
 
-          # Find target blocks: <GUID> /* <Name> */ = { ... buildConfigurationList = <GUID> ... };
+          # Find target blocks: <GUID> /* <Name> */ = { ... productType = "com.apple.product-type.application"; ... buildConfigurationList = <GUID> ... };
           target_blocks = re.findall(r'([A-Z0-9]+)\s*(?:/\*.*?\*/)?\s*=\s*\{([\s\S]*?)\};', native_section)
           for guid, body in target_blocks:
               if "isa = PBXNativeTarget" in body:
@@ -280,12 +277,20 @@ jobs:
                   t_name = name_m.group(1) if name_m else ""
                   t_list = list_m.group(1) if list_m else ""
 
-                  if t_name == "Unity-iPhone" or "Unity-iPhone" in body:
+                  # Match ONLY the application target (Unity-iPhone), NOT Tests!
+                  if (t_name == "Unity-iPhone" or 'name = "Unity-iPhone"' in body or 'name = Unity-iPhone;' in body) and "Tests" not in body and "Tests" not in guid:
                       iphone_target_guid = guid
                       iphone_config_list_guid = t_list
                   elif t_name == "UnityFramework" or "UnityFramework" in body:
                       framework_target_guid = guid
                       framework_config_list_guid = t_list
+
+          # Explicit fallback for standard Unity application target GUID 1D6058900D05DD3D006BFB54 / 1D6058960D05DD3E006BFB54
+          if not iphone_config_list_guid:
+              m = re.search(r'buildConfigurationList = ([A-Z0-9]+)\s*/\*\s*Build configuration list for PBXNativeTarget "Unity-iPhone"\s*\*/', native_section)
+              if m:
+                  iphone_config_list_guid = m.group(1)
+                  iphone_target_guid = "1D6058900D05DD3D006BFB54"
 
           # 2. Parse XCConfigurationList section to resolve buildConfigurations arrays
           config_list_match = re.search(r'/\* Begin XCConfigurationList section \*/([\s\S]*?)/\*\s*End XCConfigurationList section \*/', content)
@@ -319,7 +324,7 @@ jobs:
           print(f"UnityFramework Config GUIDs: {framework_config_guids}")
 
           if not iphone_config_guids:
-              print("Error: Failed to resolve Unity-iPhone XCBuildConfiguration GUIDs!")
+              print("Error: Failed to resolve Unity-iPhone application target XCBuildConfiguration GUIDs!")
               sys.exit(1)
 
           # 3. Modify XCBuildConfiguration section line by line
@@ -374,81 +379,14 @@ jobs:
 
           print("\n=== UNITYFRAMEWORK SIGNING ===")
           print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
-          EOF
+          PYEOF
 
-          # --- RUN DIAGNOSTICS AS REQUESTED ---
-          echo "=== 1. PBXPROJ BLOCK DIAGNOSTICS FOR UNITY-IPHONE ==="
-          python3 - << 'EOF'
-          import os, re
-
-          pbx_path = "Unity-iPhone.xcodeproj/project.pbxproj"
-          if os.path.exists(pbx_path):
-              with open(pbx_path, "r") as f:
-                  content = f.read()
-              
-              print("--- PBXNativeTarget Unity-iPhone Block ---")
-              target_m = re.search(r'/\* Begin PBXNativeTarget section \*/([\s\S]*?)/\*\s*End PBXNativeTarget section \*/', content)
-              if target_m:
-                  for block in re.findall(r'[A-Z0-9]+\s*(?:/\*.*?\*/)?\s*=\s*\{[\s\S]*?\};', target_m.group(1)):
-                      if "Unity-iPhone" in block:
-                          print(block)
-
-              print("\n--- XCBuildConfiguration Block 5623C58417FDCB0900090B9E ---")
-              xc_m = re.search(r'/\* Begin XCBuildConfiguration section \*/([\s\S]*?)/\*\s*End XCBuildConfiguration section \*/', content)
-              if xc_m:
-                  for block in re.findall(r'[A-Z0-9]+\s*(?:/\*.*?\*/)?\s*=\s*\{[\s\S]*?\};', xc_m.group(1)):
-                      if "5623C58417FDCB0900090B9E" in block:
-                          print(block)
-          EOF
-
-          echo "=== 2. XCODEBUILD -TARGET SHOWBUILDSETTINGS ==="
+          echo "=== XCODEBUILD SHOWBUILDSETTINGS FOR UNITY-IPHONE RELEASE ==="
           xcodebuild \
             -project Unity-iPhone.xcodeproj \
             -target Unity-iPhone \
             -configuration Release \
-            -showBuildSettings | grep -iE "PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED" || true
-
-          echo "=== 3. XCODEBUILD -SCHEME SHOWBUILDSETTINGS ==="
-          xcodebuild \
-            -project Unity-iPhone.xcodeproj \
-            -scheme Unity-iPhone \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -showBuildSettings | grep -iE "PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED" || true
-
-          echo "=== 4. PROVISIONING PROFILE DIAGNOSTICS VIA SECURITY CMS ==="
-          PROVISION_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          if [ -f "$PROVISION_PATH" ]; then
-            security cms -D -i "$PROVISION_PATH" > /tmp/profile.plist 2>/dev/null || true
-            
-            python3 - << 'EOF'
-            import plistlib, os
-
-            plist_path = "/tmp/profile.plist"
-            if os.path.exists(plist_path):
-                with open(plist_path, "rb") as f:
-                    data = plistlib.load(f)
-                
-                print(f"Name: {data.get('Name')}")
-                print(f"UUID: {data.get('UUID')}")
-                print(f"TeamIdentifier: {data.get('TeamIdentifier')}")
-                print(f"AppIDName: {data.get('AppIDName')}")
-                print(f"ExpirationDate: {data.get('ExpirationDate')}")
-                
-                entitlements = data.get('Entitlements', {})
-                print(f"application-identifier: {entitlements.get('application-identifier')}")
-                print(f"get-task-allow: {entitlements.get('get-task-allow')}")
-                
-                devices = data.get('ProvisionedDevices')
-                if devices:
-                    print(f"ProvisionedDevices: {len(devices)} devices listed -> DEVELOPMENT / ADHOC PROFILE")
-                else:
-                    print("ProvisionedDevices: NONE listed -> APP STORE DISTRIBUTION PROFILE")
-            EOF
-          fi
-
-          echo "=== 5. KEYCHAIN CODESIGNING IDENTITIES ==="
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
+            -showBuildSettings | grep -iE "TARGET_NAME|PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED|EXPANDED_CODE_SIGN_IDENTITY|EXPANDED_PROVISIONING_PROFILE" || true
 
           # Clean & Archive with Manual Signing (Apple Distribution)
           xcodebuild archive \
@@ -500,7 +438,7 @@ jobs:
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          API_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          API_KEY_CONTENT: ${{ secrets.APPLE_CONNECT_KEY_CONTENT }}
         run: |
           if [ -z "$API_KEY_ID" ] || [ -z "$API_KEY_CONTENT" ]; then
             echo "::warning::App Store Connect API Key secrets missing. Skipping TestFlight upload."
