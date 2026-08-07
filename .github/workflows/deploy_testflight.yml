@@ -419,38 +419,50 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" || exit 1
 
-          # Export IPA with Manual Signing ExportOptions.plist
-          PROVISION_SPECIFIER="${PROVISION_NAME:-$PROVISION_UUID}"
-          cat <<EOF > $RUNNER_TEMP/exportOptions.plist
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.plist">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store</string>
-              <key>signingStyle</key>
-              <string>manual</string>
-              <key>teamID</key>
-              <string>${TEAM_ID}</string>
-              <key>signingCertificate</key>
-              <string>Apple Distribution</string>
-              <key>provisioningProfiles</key>
-              <dict>
-                  <key>com.ektgames.pulsevania</key>
-                  <string>${PROVISION_SPECIFIER}</string>
-              </dict>
-              <key>uploadSymbols</key>
-              <true/>
-              <key>compileBitcode</key>
-              <false/>
-          </dict>
-          EOF
+          # Export IPA with Manual Signing ExportOptions.plist generated via Python plistlib
+          python3 - << 'PYEOF'
+          import os, plistlib
+
+          team_id = os.environ.get("TEAM_ID", "")
+          provision_name = os.environ.get("PROVISION_NAME", "")
+          provision_uuid = os.environ.get("PROVISION_UUID", "")
+          provision_specifier = provision_name if provision_name else provision_uuid
+
+          export_options = {
+              "method": "app-store",
+              "signingStyle": "manual",
+              "teamID": team_id,
+              "signingCertificate": "Apple Distribution",
+              "provisioningProfiles": {
+                  "com.ektgames.pulsevania": provision_specifier
+              },
+              "uploadSymbols": True,
+              "compileBitcode": False
+          }
+
+          runner_temp = os.environ.get("RUNNER_TEMP", "/tmp")
+          plist_path = os.path.join(runner_temp, "exportOptions.plist")
+
+          with open(plist_path, "wb") as f:
+              plistlib.dump(export_options, f, fmt=plistlib.FMT_XML)
+
+          print(f"Successfully generated valid XML ExportOptions.plist at {plist_path}")
+          PYEOF
+
+          echo "=== VERIFYING EXPORT OPTIONS PLIST ==="
+          plutil -lint $RUNNER_TEMP/exportOptions.plist || exit 1
+          plutil -p $RUNNER_TEMP/exportOptions.plist
 
           echo "Exporting IPA with ExportOptions.plist..."
+          mkdir -p $RUNNER_TEMP/build_ipa
+
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/Unity-iPhone.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/exportOptions.plist \
             -exportPath $RUNNER_TEMP/build_ipa || exit 1
+
+          echo "=== VERIFYING GENERATED IPA FILE ==="
+          ls -la $RUNNER_TEMP/build_ipa/*.ipa || exit 1
 
       # 5. Upload IPA to TestFlight via App Store Connect API Key
       - name: Upload to TestFlight
