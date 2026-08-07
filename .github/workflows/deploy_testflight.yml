@@ -105,24 +105,54 @@ jobs:
           P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASS }}
           PROVISION_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: "ci_keychain_password"
         run: |
-          if [ -z "$P12_BASE64" ] || [ -z "$PROVISION_BASE64" ]; then
-            echo "::warning::Apple Certificate or Provisioning Profile secrets missing. Skipping signing and TestFlight upload step."
-            exit 0
+          if [ -z "$P12_BASE64" ] || [ -z "$P12_PASSWORD" ] || [ -z "$PROVISION_BASE64" ]; then
+            echo "::error::Missing required signing secrets! Please verify APPLE_CERTIFICATE_P12_BASE64, APPLE_CERTIFICATE_PASS, and APPLE_PROVISION_PROFILE_BASE64 in GitHub Secrets."
+            exit 1
           fi
 
-          # Create temporary keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security list-keychains -s $KEYCHAIN_PATH $(security list-keychains | tr -d '"')
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASS="ci_keychain_password"
 
-          # Import Provisioning Profile
-          PROVISION_PATH=$RUNNER_TEMP/profile.mobileprovision
-          echo -n "$PROVISION_BASE64" | base64 --decode -o $PROVISION_PATH
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $PROVISION_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+          # 1. Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+
+          # 2. Decode and import .p12 certificate
+          CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
+          echo "$P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security import "$CERT_PATH" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security \
+            -A
+
+          # 3. Set keychain search list and default keychain
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          # 4. Verify certificate in keychain
+          echo "=== VERIFYING IMPORTED CERTIFICATES ==="
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          # 5. Decode and install Provisioning Profile
+          PROVISION_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          echo "$PROVISION_BASE64" | base64 --decode > "$PROVISION_PATH"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          UUID=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>UUID</key>" | grep "<string>" | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+
+          if [ -n "$UUID" ]; then
+            cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+            echo "Successfully installed Provisioning Profile as $UUID.mobileprovision"
+          else
+            cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+            echo "Installed Provisioning Profile as profile.mobileprovision (UUID not parsed)"
+          fi
 
       # 4. Build Xcode Project & Create IPA
       - name: Build Xcode Project to IPA
@@ -130,8 +160,8 @@ jobs:
           KEYCHAIN_PASSWORD: "ci_keychain_password"
         run: |
           if [ ! -d "Builds/iOS/Unity-iPhone.xcodeproj" ]; then
-            echo "::warning::Builds/iOS/Unity-iPhone.xcodeproj not found. Skipping Xcode build."
-            exit 0
+            echo "::error::Builds/iOS/Unity-iPhone.xcodeproj not found. Cannot proceed with Xcode build."
+            exit 1
           fi
 
           cd Builds/iOS
@@ -195,4 +225,5 @@ jobs:
               --apiIssuer "$API_ISSUER_ID"
           else
             echo "::error::IPA file not found in $RUNNER_TEMP/build_ipa"
+            exit 1
           fi
