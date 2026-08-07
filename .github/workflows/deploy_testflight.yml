@@ -376,6 +376,80 @@ jobs:
           print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
           EOF
 
+          # --- RUN DIAGNOSTICS AS REQUESTED ---
+          echo "=== 1. PBXPROJ BLOCK DIAGNOSTICS FOR UNITY-IPHONE ==="
+          python3 - << 'EOF'
+          import os, re
+
+          pbx_path = "Unity-iPhone.xcodeproj/project.pbxproj"
+          if os.path.exists(pbx_path):
+              with open(pbx_path, "r") as f:
+                  content = f.read()
+              
+              print("--- PBXNativeTarget Unity-iPhone Block ---")
+              target_m = re.search(r'/\* Begin PBXNativeTarget section \*/([\s\S]*?)/\*\s*End PBXNativeTarget section \*/', content)
+              if target_m:
+                  for block in re.findall(r'[A-Z0-9]+\s*(?:/\*.*?\*/)?\s*=\s*\{[\s\S]*?\};', target_m.group(1)):
+                      if "Unity-iPhone" in block:
+                          print(block)
+
+              print("\n--- XCBuildConfiguration Block 5623C58417FDCB0900090B9E ---")
+              xc_m = re.search(r'/\* Begin XCBuildConfiguration section \*/([\s\S]*?)/\*\s*End XCBuildConfiguration section \*/', content)
+              if xc_m:
+                  for block in re.findall(r'[A-Z0-9]+\s*(?:/\*.*?\*/)?\s*=\s*\{[\s\S]*?\};', xc_m.group(1)):
+                      if "5623C58417FDCB0900090B9E" in block:
+                          print(block)
+          EOF
+
+          echo "=== 2. XCODEBUILD -TARGET SHOWBUILDSETTINGS ==="
+          xcodebuild \
+            -project Unity-iPhone.xcodeproj \
+            -target Unity-iPhone \
+            -configuration Release \
+            -showBuildSettings | grep -iE "PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED" || true
+
+          echo "=== 3. XCODEBUILD -SCHEME SHOWBUILDSETTINGS ==="
+          xcodebuild \
+            -project Unity-iPhone.xcodeproj \
+            -scheme Unity-iPhone \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -showBuildSettings | grep -iE "PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED" || true
+
+          echo "=== 4. PROVISIONING PROFILE DIAGNOSTICS VIA SECURITY CMS ==="
+          PROVISION_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          if [ -f "$PROVISION_PATH" ]; then
+            security cms -D -i "$PROVISION_PATH" > /tmp/profile.plist 2>/dev/null || true
+            
+            python3 - << 'EOF'
+            import plistlib, os
+
+            plist_path = "/tmp/profile.plist"
+            if os.path.exists(plist_path):
+                with open(plist_path, "rb") as f:
+                    data = plistlib.load(f)
+                
+                print(f"Name: {data.get('Name')}")
+                print(f"UUID: {data.get('UUID')}")
+                print(f"TeamIdentifier: {data.get('TeamIdentifier')}")
+                print(f"AppIDName: {data.get('AppIDName')}")
+                print(f"ExpirationDate: {data.get('ExpirationDate')}")
+                
+                entitlements = data.get('Entitlements', {})
+                print(f"application-identifier: {entitlements.get('application-identifier')}")
+                print(f"get-task-allow: {entitlements.get('get-task-allow')}")
+                
+                devices = data.get('ProvisionedDevices')
+                if devices:
+                    print(f"ProvisionedDevices: {len(devices)} devices listed -> DEVELOPMENT / ADHOC PROFILE")
+                else:
+                    print("ProvisionedDevices: NONE listed -> APP STORE DISTRIBUTION PROFILE")
+            EOF
+          fi
+
+          echo "=== 5. KEYCHAIN CODESIGNING IDENTITIES ==="
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
+
           # Clean & Archive with Manual Signing (Apple Distribution)
           xcodebuild archive \
             -project Unity-iPhone.xcodeproj \
