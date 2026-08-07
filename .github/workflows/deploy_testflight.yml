@@ -444,6 +444,33 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Distribution" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" || exit 1
 
+          echo "=== SEARCHING FOR dSYM FILES ==="
+          find "$RUNNER_TEMP/Unity-iPhone.xcarchive" -type d -name "*.dSYM" -print || true
+          find "$GITHUB_WORKSPACE" -type d -name "*.dSYM" -print || true
+
+          echo "=== COLLECTING dSYM FILES ==="
+          mkdir -p "$RUNNER_TEMP/dSYMs"
+          find "$RUNNER_TEMP/Unity-iPhone.xcarchive" -type d -name "*.dSYM" -exec cp -R {} "$RUNNER_TEMP/dSYMs/" \;
+
+          if ! find "$RUNNER_TEMP/dSYMs" -type d -name "*.dSYM" | grep -q .; then
+              echo "::error::NO dSYM FILES WERE FOUND IN THE XCODE ARCHIVE!"
+              exit 1
+          fi
+
+          echo "=== dSYM FILES IN $RUNNER_TEMP/dSYMs ==="
+          find "$RUNNER_TEMP/dSYMs" -maxdepth 2 -type d -name "*.dSYM" -print
+
+          echo "=== DWARF FILES ==="
+          find "$RUNNER_TEMP/dSYMs" -type f -path "*/Contents/Resources/DWARF/*" -print
+
+          echo "=== DWARFDUMP UUID VERIFICATION ==="
+          for dsym in "$RUNNER_TEMP"/dSYMs/*.dSYM; do
+              if [ -d "$dsym" ]; then
+                  echo "===== $dsym ====="
+                  dwarfdump --uuid "$dsym" || true
+              fi
+          done
+
           # Export IPA with Manual Signing ExportOptions.plist generated via Python plistlib
           python3 - << 'PYEOF'
           import os, plistlib
@@ -488,6 +515,14 @@ jobs:
 
           echo "=== VERIFYING GENERATED IPA FILE ==="
           ls -la $RUNNER_TEMP/build_ipa/*.ipa || exit 1
+
+      # 4b. Upload iOS dSYM Artifacts for Crash Symbolication
+      - name: Upload iOS dSYM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-dsyms
+          path: ${{ runner.temp }}/dSYMs
+          if-no-files-found: error
 
       # 5. Upload IPA to TestFlight via App Store Connect API Key
       - name: Upload to TestFlight
