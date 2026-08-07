@@ -119,9 +119,12 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
 
-          # 2. Clean, decode and import .p12 certificate
+          # 2. Clean and decode .p12 certificate with OpenSSL
           CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
-          echo -n "$P12_BASE64" | tr -d '\r\n ' | base64 --decode > "$CERT_PATH"
+          CERT_B64_FILE="$RUNNER_TEMP/cert_b64.txt"
+          
+          echo "$P12_BASE64" | tr -d '\r\n ' > "$CERT_B64_FILE"
+          openssl base64 -d -A -in "$CERT_B64_FILE" -out "$CERT_PATH"
 
           FILE_SIZE=$(wc -c < "$CERT_PATH" | tr -d ' ')
           echo "Decoded P12 Certificate file size: $FILE_SIZE bytes"
@@ -131,22 +134,35 @@ jobs:
             exit 1
           fi
 
+          # 3. Import P12 Certificate (with OpenSSL legacy fallback for Windows/modern P12 ciphers)
+          echo "Importing P12 Certificate into keychain..."
           if ! security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -A; then
-            echo "::error::Failed to import P12 certificate. MAC verification failed (wrong password or corrupted P12). Please verify that GitHub Secret APPLE_CERTIFICATE_PASS matches the password of the exported .p12 file, and APPLE_CERTIFICATE_P12_BASE64 is valid!"
-            exit 1
+            echo "Standard P12 import failed (likely modern OpenSSL 3 / Windows P12 cipher). Converting to macOS legacy PKCS12..."
+            
+            PEM_PATH="$RUNNER_TEMP/temp_cert.pem"
+            LEGACY_P12_PATH="$RUNNER_TEMP/legacy_certificate.p12"
+
+            openssl pkcs12 -in "$CERT_PATH" -out "$PEM_PATH" -nodes -passin "pass:$P12_PASSWORD"
+            openssl pkcs12 -export -out "$LEGACY_P12_PATH" -in "$PEM_PATH" -passout "pass:$P12_PASSWORD" -legacy
+
+            echo "Importing legacy-formatted P12 Certificate into keychain..."
+            security import "$LEGACY_P12_PATH" -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -A
           fi
 
-          # 3. Set keychain search list and default keychain
+          # 4. Set keychain search list and default keychain
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
           security default-keychain -s "$KEYCHAIN_PATH"
 
-          # 4. Verify certificate in keychain
+          # 5. Verify certificate in keychain
           echo "=== VERIFYING IMPORTED CERTIFICATES ==="
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
-          # 5. Decode and install Provisioning Profile
+          # 6. Decode and install Provisioning Profile
           PROVISION_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          echo -n "$PROVISION_BASE64" | tr -d '\r\n ' | base64 --decode > "$PROVISION_PATH"
+          PROVISION_B64_FILE="$RUNNER_TEMP/provision_b64.txt"
+          
+          echo "$PROVISION_BASE64" | tr -d '\r\n ' > "$PROVISION_B64_FILE"
+          openssl base64 -d -A -in "$PROVISION_B64_FILE" -out "$PROVISION_PATH"
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
 
