@@ -204,6 +204,9 @@ jobs:
           echo "Profile UUID: $PROVISION_UUID"
           echo "Team Identifier: $PROVISION_TEAM_ID"
           echo "App Identifier: $PROVISION_APP_ID"
+          
+          echo "=== ENTITLEMENTS IN PROVISIONING PROFILE ==="
+          grep -A20 "<key>Entitlements</key>" "$RUNNER_TEMP/profile_plist.xml" | head -n 25 || true
 
           if [ -n "$PROVISION_UUID" ]; then
             cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROVISION_UUID.mobileprovision"
@@ -237,9 +240,9 @@ jobs:
           echo "Provisioning Profile Name: $PROVISION_NAME"
           echo "Provisioning Profile UUID: $PROVISION_UUID"
 
-          # Target-specific signing patch via safe line-based Python
+          # Target-specific signing patch via robust section block Python parser
           python3 - << 'EOF'
-          import os, sys
+          import os, re, sys
 
           pbx_path = "Unity-iPhone.xcodeproj/project.pbxproj"
           provision_uuid = os.environ.get("PROVISION_UUID", "")
@@ -252,100 +255,133 @@ jobs:
               sys.exit(1)
 
           with open(pbx_path, "r") as f:
-              lines = f.readlines()
+              content = f.read()
 
-          # Step 1: Find buildConfigurationList GUID for Unity-iPhone and UnityFramework
-          iphone_list_guid = None
-          framework_list_guid = None
+          # 1. Parse PBXNativeTarget section to find GUIDs and buildConfigurationList GUIDs
+          native_match = re.search(r'/\* Begin PBXNativeTarget section \*/([\s\S]*?)/\*\s*End PBXNativeTarget section \*/', content)
+          if not native_match:
+              print("Error: PBXNativeTarget section not found!")
+              sys.exit(1)
 
-          for line in lines:
-              if 'Build configuration list for PBXNativeTarget "Unity-iPhone"' in line:
-                  parts = line.split("=")
-                  if len(parts) > 1:
-                      iphone_list_guid = parts[1].strip().split()[0]
-              elif 'Build configuration list for PBXNativeTarget "UnityFramework"' in line:
-                  parts = line.split("=")
-                  if len(parts) > 1:
-                      framework_list_guid = parts[1].strip().split()[0]
+          native_section = native_match.group(1)
 
-          print(f"Unity-iPhone Config List GUID: {iphone_list_guid}")
-          print(f"UnityFramework Config List GUID: {framework_list_guid}")
+          iphone_target_guid = None
+          iphone_config_list_guid = None
+          framework_target_guid = None
+          framework_config_list_guid = None
 
-          # Step 2: Extract Release config GUID for Unity-iPhone and all config GUIDs for UnityFramework
-          iphone_release_guid = None
-          framework_config_guids = set()
-          in_list = None
+          # Find target blocks: <GUID> /* <Name> */ = { ... buildConfigurationList = <GUID> ... };
+          target_blocks = re.findall(r'([A-Z0-9]+)\s*(?:/\*.*?\*/)?\s*=\s*\{([\s\S]*?)\};', native_section)
+          for guid, body in target_blocks:
+              if "isa = PBXNativeTarget" in body:
+                  name_m = re.search(r'name = "?([^";\s]+)"?', body)
+                  list_m = re.search(r'buildConfigurationList = ([A-Z0-9]+)', body)
 
-          for line in lines:
-              if iphone_list_guid and iphone_list_guid in line and "XCConfigurationList" in line:
-                  in_list = "iphone"
-              elif framework_list_guid and framework_list_guid in line and "XCConfigurationList" in line:
-                  in_list = "framework"
-              elif in_list and "};" in line:
-                  in_list = None
+                  t_name = name_m.group(1) if name_m else ""
+                  t_list = list_m.group(1) if list_m else ""
 
-              if in_list == "iphone" and "/* Release */" in line:
-                  iphone_release_guid = line.strip().split()[0]
-              elif in_list == "framework" and "/*" in line and "*/" in line:
-                  guid = line.strip().split()[0]
-                  if guid and len(guid) > 10:
-                      framework_config_guids.add(guid)
+                  if t_name == "Unity-iPhone" or "Unity-iPhone" in body:
+                      iphone_target_guid = guid
+                      iphone_config_list_guid = t_list
+                  elif t_name == "UnityFramework" or "UnityFramework" in body:
+                      framework_target_guid = guid
+                      framework_config_list_guid = t_list
 
-          print(f"Unity-iPhone Release Config GUID: {iphone_release_guid}")
+          # 2. Parse XCConfigurationList section to resolve buildConfigurations arrays
+          config_list_match = re.search(r'/\* Begin XCConfigurationList section \*/([\s\S]*?)/\*\s*End XCConfigurationList section \*/', content)
+          if not config_list_match:
+              print("Error: XCConfigurationList section not found!")
+              sys.exit(1)
+
+          config_list_section = config_list_match.group(1)
+
+          iphone_config_guids = []
+          framework_config_guids = []
+
+          config_list_blocks = re.findall(r'([A-Z0-9]+)\s*(?:/\*.*?\*/)?\s*=\s*\{([\s\S]*?)\};', config_list_section)
+          for list_guid, list_body in config_list_blocks:
+              if "isa = XCConfigurationList" in list_body:
+                  configs_arr_m = re.search(r'buildConfigurations = \(([\s\S]*?)\);', list_body)
+                  if configs_arr_m:
+                      guids = re.findall(r'([A-Z0-9]+)\s*/\*', configs_arr_m.group(1))
+                      if list_guid == iphone_config_list_guid:
+                          iphone_config_guids = guids
+                      elif list_guid == framework_config_list_guid:
+                          framework_config_guids = guids
+
+          # Print exact required VERIFICATION format
+          print("=== VERIFICATION ===")
+          print(f"Unity-iPhone Target GUID: {iphone_target_guid}")
+          print(f"Unity-iPhone Config List GUID: {iphone_config_list_guid}")
+          print(f"Unity-iPhone Config GUIDs: {iphone_config_guids}")
+          print(f"UnityFramework Target GUID: {framework_target_guid}")
+          print(f"UnityFramework Config List GUID: {framework_config_list_guid}")
           print(f"UnityFramework Config GUIDs: {framework_config_guids}")
 
-          # Step 3: Modify XCBuildConfiguration blocks line by line
+          if not iphone_config_guids:
+              print("Error: Failed to resolve Unity-iPhone XCBuildConfiguration GUIDs!")
+              sys.exit(1)
+
+          # 3. Modify XCBuildConfiguration section line by line
+          lines = content.splitlines(True)
           new_lines = []
           current_block_guid = None
           in_build_settings = False
+          in_xc_section = False
 
           for line in lines:
-              if "/*" in line and "*/ = {" in line and "XCBuildConfiguration" in line:
-                  current_block_guid = line.strip().split()[0]
-              elif "/*" in line and "*/ = {" in line:
-                  current_block_guid = line.strip().split()[0]
+              if "/* Begin XCBuildConfiguration section */" in line:
+                  in_xc_section = True
+              elif "/* End XCBuildConfiguration section */" in line:
+                  in_xc_section = False
+                  current_block_guid = None
 
-              # Strip provisioning profile settings from UnityFramework blocks
-              if current_block_guid in framework_config_guids:
-                  if "PROVISIONING_PROFILE" in line or "PROVISIONING_PROFILE_SPECIFIER" in line:
-                      continue
+              if in_xc_section:
+                  m_block = re.match(r'\s*([A-Z0-9]+)\s*/\*\s*(\w+)\s*\*/\s*=\s*\{', line)
+                  if m_block:
+                      current_block_guid = m_block.group(1)
 
-              # Clean existing signing entries from Unity-iPhone Release block to prevent duplicate keys
-              if current_block_guid and current_block_guid == iphone_release_guid:
-                  if "CODE_SIGN_STYLE" in line or "PROVISIONING_PROFILE" in line or "CODE_SIGN_IDENTITY" in line or "DEVELOPMENT_TEAM" in line:
-                      continue
+                  if current_block_guid in framework_config_guids:
+                      if "PROVISIONING_PROFILE" in line or "PROVISIONING_PROFILE_SPECIFIER" in line:
+                          continue
+
+                  if current_block_guid in iphone_config_guids:
+                      if "CODE_SIGN_STYLE" in line or "PROVISIONING_PROFILE" in line or "CODE_SIGN_IDENTITY" in line or "DEVELOPMENT_TEAM" in line:
+                          continue
 
               new_lines.append(line)
 
-              if line.strip() == "buildSettings = {":
+              if in_xc_section and current_block_guid in iphone_config_guids and line.strip() == "buildSettings = {":
                   in_build_settings = True
-                  if current_block_guid and current_block_guid == iphone_release_guid:
-                      new_lines.append('\t\t\t\tCODE_SIGN_STYLE = Manual;\n')
-                      new_lines.append(f'\t\t\t\tDEVELOPMENT_TEAM = "{team_id}";\n')
-                      new_lines.append('\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n')
-                      new_lines.append('\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";\n')
-                      new_lines.append(f'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{provision_specifier}";\n')
-                      new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{provision_specifier}";\n')
-
-              if in_build_settings and line.strip() == "};":
-                  in_build_settings = False
-                  current_block_guid = None
+                  new_lines.append('\t\t\t\tCODE_SIGN_STYLE = Manual;\n')
+                  new_lines.append(f'\t\t\t\tDEVELOPMENT_TEAM = "{team_id}";\n')
+                  new_lines.append('\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n')
+                  new_lines.append('\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";\n')
+                  new_lines.append(f'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{provision_specifier}";\n')
+                  new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{provision_specifier}";\n')
+                  new_lines.append(f'\t\t\t\tPROVISIONING_PROFILE = "{provision_uuid}";\n')
+                  new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE[sdk=iphoneos*]" = "{provision_uuid}";\n')
 
           with open(pbx_path, "w") as f:
               f.writelines(new_lines)
 
-          print("=== VERIFICATION: PATCHED UNITY-IPHONE SIGNING SETTINGS ===")
+          print("\n=== UNITY-IPHONE SIGNING ===")
           print(f"CODE_SIGN_STYLE = Manual")
           print(f"DEVELOPMENT_TEAM = {team_id}")
-          print(f'CODE_SIGN_IDENTITY = "Apple Distribution"')
-          print(f'PROVISIONING_PROFILE_SPECIFIER = "{provision_specifier}"')
+          print(f"CODE_SIGN_IDENTITY = Apple Distribution")
+          print(f"PROVISIONING_PROFILE_SPECIFIER = {provision_specifier}")
+          print(f"PROVISIONING_PROFILE = {provision_uuid}")
+
+          print("\n=== UNITYFRAMEWORK SIGNING ===")
+          print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
           EOF
 
-          # Clean & Archive (without global PROVISIONING_PROFILE_SPECIFIER overriding)
+          # Clean & Archive with Manual Signing (Apple Distribution)
           xcodebuild archive \
             -project Unity-iPhone.xcodeproj \
             -scheme Unity-iPhone \
             -configuration Release \
+            -destination 'generic/platform=iOS' \
             -archivePath $RUNNER_TEMP/Unity-iPhone.xcarchive \
             CODE_SIGN_STYLE="Manual" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
@@ -377,7 +413,6 @@ jobs:
               <key>compileBitcode</key>
               <false/>
           </dict>
-          </plist>
           EOF
 
           echo "Exporting IPA with ExportOptions.plist..."
