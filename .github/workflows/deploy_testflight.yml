@@ -134,7 +134,7 @@ jobs:
 
           # 1. Create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security set-key-chain-settings -lut 21600 "$KEYCHAIN_PATH" 2>/dev/null || true
           security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
 
           # 2. Clean and decode .p12 certificate with OpenSSL 3
@@ -225,11 +225,52 @@ jobs:
 
           KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
 
-          echo "Starting Xcode Archive with Manual Signing for App Store / TestFlight..."
+          echo "Configuring target-specific signing in Unity-iPhone.xcodeproj/project.pbxproj..."
           echo "Team ID: $TEAM_ID"
           echo "Provisioning Profile UUID: $PROVISION_UUID"
 
-          # Clean & Archive with Manual Signing (Apple Distribution)
+          # Target-specific signing patch via Python
+          python3 - << 'EOF'
+          import os, re
+
+          pbx_path = "Unity-iPhone.xcodeproj/project.pbxproj"
+          provision_uuid = os.environ.get("PROVISION_UUID", "")
+          team_id = os.environ.get("TEAM_ID", "")
+
+          if not os.path.exists(pbx_path):
+              print(f"Error: {pbx_path} not found")
+              exit(1)
+
+          with open(pbx_path, "r") as f:
+              content = f.read()
+
+          # 1. Remove any PROVISIONING_PROFILE or PROVISIONING_PROFILE_SPECIFIER from UnityFramework
+          def clean_unity_framework(match):
+              block = match.group(0)
+              block = re.sub(r'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = [^;]+;\n', '', block)
+              block = re.sub(r'\t\t\t\tPROVISIONING_PROFILE = [^;]+;\n', '', block)
+              return block
+
+          content = re.sub(r'/\* Release \*/ = \{\s*isa = XCBuildConfiguration;[\s\S]*?name = Release;[\s\S]*?\};', clean_unity_framework, content)
+
+          # 2. Inject target-specific signing settings into Unity-iPhone Release buildSettings
+          def patch_unity_iphone_release(match):
+              block = match.group(0)
+              block = re.sub(r'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = [^;]+;\n', '', block)
+              block = re.sub(r'\t\t\t\tCODE_SIGN_STYLE = [^;]+;\n', '', block)
+              block = re.sub(r'\t\t\t\tCODE_SIGN_IDENTITY = [^;]+;\n', '', block)
+              
+              signing_keys = f'\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{provision_uuid}";\n'
+              block = re.sub(r'(\t\t\tbuildSettings = \{)', r'\1\n' + signing_keys, block)
+              return block
+
+          with open(pbx_path, "w") as f:
+              f.write(content)
+
+          print("Successfully patched target-specific signing settings in project.pbxproj")
+          EOF
+
+          # Clean & Archive (without global PROVISIONING_PROFILE_SPECIFIER overriding)
           xcodebuild archive \
             -project Unity-iPhone.xcodeproj \
             -scheme Unity-iPhone \
@@ -238,7 +279,6 @@ jobs:
             CODE_SIGN_STYLE="Manual" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROVISION_UUID" \
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" || exit 1
 
           # Export IPA with Manual Signing ExportOptions.plist
