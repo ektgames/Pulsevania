@@ -37,16 +37,19 @@ jobs:
           targetPlatform: iOS
           buildMethod: Pulsevania.EditorTools.BuildScript.BuildiOS
           buildName: Pulsevania
-          outputPath: Builds/iOS
+          buildsPath: Builds
+          customParameters: -logFile unity-builder.log
 
       # 3b. Print Detailed Unity Log on Failure
       - name: Print Unity Log output on Failure
         if: failure()
         run: |
-          echo "=== UNITY BUILD LOG / EDITOR LOG (LAST 500 LINES) ==="
-          find . -name "*.log" -exec tail -n 500 {} + || true
-          find /root/.unity3d/ -name "*.log" -exec tail -n 500 {} + 2>/dev/null || true
-          find /tmp -name "*.log" -exec tail -n 500 {} + 2>/dev/null || true
+          echo "=== UNITY BUILD LOG (LAST 500 LINES) ==="
+          if [ -f "unity-builder.log" ]; then
+            tail -n 500 unity-builder.log
+          else
+            find . -name "*.log" -exec tail -n 500 {} + || true
+          fi
 
       # 3c. Upload Full Unity Build Log Artifact
       - name: Upload Unity Log Artifact
@@ -54,9 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unity-build-log
-          path: |
-            *.log
-            Library/Logs/**/*.log
+          path: unity-builder.log
 
       # 4. Upload exported Xcode Project Artifact
       - name: Upload Xcode Project Artifact
