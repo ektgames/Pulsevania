@@ -230,6 +230,12 @@ jobs:
 
           cd Builds/iOS
 
+          if [ -f "Info.plist" ]; then
+            plutil -replace CFBundleVersion -string "6" Info.plist 2>/dev/null || true
+          fi
+          echo "=== VERIFYING CFBundleVersion IN INFO.PLIST ==="
+          plutil -p Info.plist | grep -i CFBundleVersion || true
+
           KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
 
           echo "Configuring target-specific signing in Unity-iPhone.xcodeproj/project.pbxproj..."
@@ -374,6 +380,7 @@ jobs:
                   new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{provision_specifier}";\n')
                   new_lines.append(f'\t\t\t\tPROVISIONING_PROFILE = "{provision_uuid}";\n')
                   new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE[sdk=iphoneos*]" = "{provision_uuid}";\n')
+                  new_lines.append('\t\t\t\tCURRENT_PROJECT_VERSION = 6;\n')
 
           with open(pbx_path, "w") as f:
               f.writelines(new_lines)
