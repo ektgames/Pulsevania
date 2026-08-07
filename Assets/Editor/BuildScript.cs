@@ -64,34 +64,6 @@ namespace Pulsevania.EditorTools
                     EditorApplication.Exit(1);
                 }
             }
-            else
-            {
-                MakeProcessSymbolsExecutable(buildPath);
-            }
-        }
-
-        private static void MakeProcessSymbolsExecutable(string buildPath)
-        {
-            string symbolScriptPath = Path.Combine(buildPath, "process_symbols.sh");
-            if (File.Exists(symbolScriptPath))
-            {
-                Debug.Log($"[BuildScript] Found {symbolScriptPath}, making executable (+x)...");
-                try
-                {
-                    if (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX)
-                    {
-                        var proc = System.Diagnostics.Process.Start("chmod", $"+x \"{symbolScriptPath}\"");
-                        proc?.WaitForExit();
-
-                        var gitProc = System.Diagnostics.Process.Start("git", $"update-index --chmod=+x \"{symbolScriptPath}\"");
-                        gitProc?.WaitForExit();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning($"[BuildScript] Could not set +x on {symbolScriptPath}: {ex.Message}");
-                }
-            }
         }
 
         private static string[] GetBuildScenes()
