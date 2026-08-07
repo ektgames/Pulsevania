@@ -354,8 +354,13 @@ jobs:
                       if "CODE_SIGN_STYLE" in line or "PROVISIONING_PROFILE" in line or "CODE_SIGN_IDENTITY" in line or "DEVELOPMENT_TEAM" in line:
                           continue
 
-              if "process_symbols.sh" in line:
-                  line = '\t\tshellScript = "/bin/sh \\"$PROJECT_DIR/process_symbols.sh\\"";\n'
+              if ("process_symbols" in line or "Unity Process symbols" in line) and "shellScript" in line:
+                  line = '\t\tshellScript = "echo \\"Unity symbol processing disabled in CI\\"; exit 0;";\n'
+
+              # Remove buildPhases array entry for Unity Process symbols
+              if "Unity Process symbols" in line and "=" not in line:
+                  print(f"[Patch] Removing buildPhases reference: {line.strip()}")
+                  continue
 
               new_lines.append(line)
 
@@ -384,8 +389,12 @@ jobs:
           print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
           PYEOF
 
-          echo "=== VERIFYING PROCESS_SYMBOLS PATCH IN PBXPROJ ==="
-          grep -n -C 3 "process_symbols.sh" Unity-iPhone.xcodeproj/project.pbxproj || true
+          echo "=== VERIFYING PROCESS_SYMBOLS & USYMTOOL FILES EXIST ==="
+          ls -la process_symbols.sh usymtoolarm64 || true
+
+          echo "=== VERIFYING SYMBOL PROCESSING BUILD PHASES IN PBXPROJ ==="
+          grep -n -C 3 "Unity Process symbols" Unity-iPhone.xcodeproj/project.pbxproj || true
+          grep -n -C 3 "process_symbols" Unity-iPhone.xcodeproj/project.pbxproj || true
 
           echo "=== VERIFYING XCODE PROJECT PARSE & LIST ==="
           plutil -lint Unity-iPhone.xcodeproj/project.pbxproj || exit 1
