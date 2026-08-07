@@ -354,6 +354,9 @@ jobs:
                       if "CODE_SIGN_STYLE" in line or "PROVISIONING_PROFILE" in line or "CODE_SIGN_IDENTITY" in line or "DEVELOPMENT_TEAM" in line:
                           continue
 
+              if "process_symbols.sh" in line:
+                  line = '\t\tshellScript = "/bin/sh \\"$PROJECT_DIR/process_symbols.sh\\"";\n'
+
               new_lines.append(line)
 
               if in_xc_section and current_block_guid in iphone_config_guids and line.strip() == "buildSettings = {":
@@ -380,6 +383,13 @@ jobs:
           print("\n=== UNITYFRAMEWORK SIGNING ===")
           print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
           PYEOF
+
+          echo "=== VERIFYING PROCESS_SYMBOLS PATCH IN PBXPROJ ==="
+          grep -n -C 3 "process_symbols.sh" Unity-iPhone.xcodeproj/project.pbxproj || true
+
+          echo "=== VERIFYING XCODE PROJECT PARSE & LIST ==="
+          plutil -lint Unity-iPhone.xcodeproj/project.pbxproj || exit 1
+          xcodebuild -project Unity-iPhone.xcodeproj -list || exit 1
 
           echo "=== XCODEBUILD SHOWBUILDSETTINGS FOR UNITY-IPHONE RELEASE ==="
           xcodebuild \
