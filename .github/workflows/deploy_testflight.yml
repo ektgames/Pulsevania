@@ -39,6 +39,15 @@ jobs:
           buildName: Pulsevania
           buildsPath: Builds
 
+      # 3a. Ensure process_symbols.sh is executable (+x)
+      - name: Make process_symbols.sh executable
+        run: |
+          if [ -f "Builds/iOS/process_symbols.sh" ]; then
+            chmod +x "Builds/iOS/process_symbols.sh"
+            git update-index --chmod=+x "Builds/iOS/process_symbols.sh" 2>/dev/null || true
+            ls -l "Builds/iOS/process_symbols.sh"
+          fi
+
       # 3b. Extract and Print Detailed Unity Editor.log
       - name: Extract and Print Unity Editor.log
         if: always()
@@ -226,6 +235,15 @@ jobs:
           if [ ! -d "Builds/iOS/Unity-iPhone.xcodeproj" ]; then
             echo "::error::Builds/iOS/Unity-iPhone.xcodeproj not found. Cannot proceed with Xcode build."
             exit 1
+          fi
+
+          if [ -f "Builds/iOS/process_symbols.sh" ]; then
+              chmod +x "Builds/iOS/process_symbols.sh"
+              ls -l "Builds/iOS/process_symbols.sh"
+              test -x "Builds/iOS/process_symbols.sh"
+          else
+              echo "ERROR: Builds/iOS/process_symbols.sh bulunamadı!"
+              exit 1
           fi
 
           cd Builds/iOS
