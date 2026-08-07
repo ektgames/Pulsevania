@@ -17,14 +17,30 @@ jobs:
         with:
           lfs: true
 
-      # 2. Cache Unity Library directory for faster builds
-      - name: Cache Unity Library
-        uses: actions/cache@v4
-        with:
-          path: Library
-          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
-          restore-keys: |
-            Library-
+      # 2. Cache Unity Library directory (Disabled restore-keys to ensure clean asset import & prevent stale serialization type tree corruption)
+      # - name: Cache Unity Library
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: Library
+      #     key: Library-Clean-${{ github.sha }}
+
+      # 2b. Print Unity & Project Diagnostics
+      - name: Print Unity & Project Diagnostics
+        run: |
+          echo "=== UNITY EDITOR VERSION ==="
+          cat ProjectSettings/ProjectVersion.txt || true
+
+          echo "=== PACKAGES & VERSIONS ==="
+          cat Packages/manifest.json || true
+
+          echo "=== BUILD SCENES ==="
+          grep -A10 "m_Scenes:" ProjectSettings/EditorBuildSettings.asset || true
+
+          echo "=== PROJECT SETTINGS DIAGNOSTICS ==="
+          grep -iE "applicationIdentifier|buildNumber|targetOSVersion|scriptingBackend|strippingLevel" ProjectSettings/ProjectSettings.asset || true
+
+          echo "=== INCLUDED SCENE FILE ==="
+          ls -lh Assets/Scenes/SampleScene.unity || true
 
       # 3. Build Unity Project to Xcode Project
       - name: Build Unity for iOS (Export Xcode)
