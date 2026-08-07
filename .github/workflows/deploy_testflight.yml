@@ -230,10 +230,6 @@ jobs:
 
           cd Builds/iOS
 
-          echo "=== DIAGNOSTICS: BEFORE PBXPROJ PATCH ==="
-          grep -n -A10 -B5 "Unity Process symbols for UnityFramework" Unity-iPhone.xcodeproj/project.pbxproj || true
-          grep -n "process_symbols.sh" Unity-iPhone.xcodeproj/project.pbxproj || true
-
           KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
 
           echo "Configuring target-specific signing in Unity-iPhone.xcodeproj/project.pbxproj..."
@@ -371,21 +367,6 @@ jobs:
                   new_lines.append(f'\t\t\t\tPROVISIONING_PROFILE = "{provision_uuid}";\n')
                   new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE[sdk=iphoneos*]" = "{provision_uuid}";\n')
 
-          # 4. Patch PBXShellScriptBuildPhase for process_symbols.sh to use /bin/sh explicitly
-          patched_lines = []
-          for line in new_lines:
-              if "process_symbols.sh" in line and "/bin/sh " not in line:
-                  line = re.sub(
-                      r'shellScript\s*=\s*".*?process_symbols\.sh.*?";',
-                      'shellScript = "\\"/bin/sh \\\\\\"$PROJECT_DIR/process_symbols.sh\\\\\\"\\";',
-                      line
-                  )
-                  if "/bin/sh " not in line:
-                      line = line.replace('\"$PROJECT_DIR/process_symbols.sh\"', '\"/bin/sh \\\"$PROJECT_DIR/process_symbols.sh\\\"\"')
-                      line = line.replace('"$PROJECT_DIR/process_symbols.sh"', '"/bin/sh "$PROJECT_DIR/process_symbols.sh""')
-              patched_lines.append(line)
-          new_lines = patched_lines
-
           with open(pbx_path, "w") as f:
               f.writelines(new_lines)
 
@@ -399,10 +380,6 @@ jobs:
           print("\n=== UNITYFRAMEWORK SIGNING ===")
           print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
           PYEOF
-
-          echo "=== DIAGNOSTICS: AFTER PBXPROJ PATCH ==="
-          grep -n -A10 -B5 "Unity Process symbols for UnityFramework" Unity-iPhone.xcodeproj/project.pbxproj || true
-          grep -n "process_symbols.sh" Unity-iPhone.xcodeproj/project.pbxproj || true
 
           echo "=== XCODEBUILD SHOWBUILDSETTINGS FOR UNITY-IPHONE RELEASE ==="
           xcodebuild \
