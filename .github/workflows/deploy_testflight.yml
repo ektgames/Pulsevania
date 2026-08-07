@@ -134,7 +134,7 @@ jobs:
 
           # 1. Create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
-          security set-key-chain-settings -lut 21600 "$KEYCHAIN_PATH" 2>/dev/null || true
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH" 2>/dev/null || true
           security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
 
           # 2. Clean and decode .p12 certificate with OpenSSL 3
@@ -192,23 +192,30 @@ jobs:
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
 
-          PROVISION_UUID=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>UUID</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
-          PROVISION_NAME=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>Name</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
-          PROVISION_APP_ID=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>application-identifier</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          echo "=== PROVISIONING PROFILE VERIFICATION VIA SECURITY CMS ==="
+          security cms -D -i "$PROVISION_PATH" > "$RUNNER_TEMP/profile_plist.xml" 2>/dev/null || true
 
-          echo "=== PROVISIONING PROFILE METADATA ==="
+          PROVISION_UUID=$(grep -A1 "<key>UUID</key>" "$RUNNER_TEMP/profile_plist.xml" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          PROVISION_NAME=$(grep -A1 "<key>Name</key>" "$RUNNER_TEMP/profile_plist.xml" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          PROVISION_TEAM_ID=$(grep -A1 "<key>TeamIdentifier</key>" "$RUNNER_TEMP/profile_plist.xml" | grep "<array>" -A1 | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          PROVISION_APP_ID=$(grep -A1 "<key>application-identifier</key>" "$RUNNER_TEMP/profile_plist.xml" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+
           echo "Profile Name: $PROVISION_NAME"
           echo "Profile UUID: $PROVISION_UUID"
+          echo "Team Identifier: $PROVISION_TEAM_ID"
           echo "App Identifier: $PROVISION_APP_ID"
 
           if [ -n "$PROVISION_UUID" ]; then
             cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROVISION_UUID.mobileprovision"
             echo "Successfully installed Provisioning Profile as $PROVISION_UUID.mobileprovision"
-            echo "PROVISION_UUID=$PROVISION_UUID" >> $GITHUB_ENV
-          else
-            cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-            echo "Installed Provisioning Profile as profile.mobileprovision"
           fi
+          
+          # Always install as profile.mobileprovision too
+          cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+
+          # Export variables to GITHUB_ENV
+          echo "PROVISION_UUID=$PROVISION_UUID" >> $GITHUB_ENV
+          echo "PROVISION_NAME=$PROVISION_NAME" >> $GITHUB_ENV
 
       # 4. Build Xcode Project & Create IPA
       - name: Build Xcode Project to IPA
@@ -227,47 +234,97 @@ jobs:
 
           echo "Configuring target-specific signing in Unity-iPhone.xcodeproj/project.pbxproj..."
           echo "Team ID: $TEAM_ID"
+          echo "Provisioning Profile Name: $PROVISION_NAME"
           echo "Provisioning Profile UUID: $PROVISION_UUID"
 
           # Target-specific signing patch via Python
           python3 - << 'EOF'
-          import os, re
+          import os, re, sys
 
           pbx_path = "Unity-iPhone.xcodeproj/project.pbxproj"
           provision_uuid = os.environ.get("PROVISION_UUID", "")
+          provision_name = os.environ.get("PROVISION_NAME", "")
+          # Prefer Name if available, otherwise fallback to UUID
+          provision_specifier = provision_name if provision_name else provision_uuid
           team_id = os.environ.get("TEAM_ID", "")
 
           if not os.path.exists(pbx_path):
               print(f"Error: {pbx_path} not found")
-              exit(1)
+              sys.exit(1)
 
           with open(pbx_path, "r") as f:
               content = f.read()
 
-          # 1. Remove any PROVISIONING_PROFILE or PROVISIONING_PROFILE_SPECIFIER from UnityFramework
-          def clean_unity_framework(match):
-              block = match.group(0)
-              block = re.sub(r'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = [^;]+;\n', '', block)
-              block = re.sub(r'\t\t\t\tPROVISIONING_PROFILE = [^;]+;\n', '', block)
-              return block
+          # 1. Find PBXNativeTarget for "Unity-iPhone"
+          iphone_target_match = re.search(r'([A-Z0-9]+)\s*/\*\s*Unity-iPhone\s*\*/\s*=\s*\{\s*isa\s*=\s*PBXNativeTarget;[\s\S]*?buildConfigurationList\s*=\s*([A-Z0-9]+)', content)
+          iphone_target_guid = iphone_target_match.group(1) if iphone_target_match else "UNKNOWN"
+          iphone_config_list_guid = iphone_target_match.group(2) if iphone_target_match else "UNKNOWN"
 
-          content = re.sub(r'/\* Release \*/ = \{\s*isa = XCBuildConfiguration;[\s\S]*?name = Release;[\s\S]*?\};', clean_unity_framework, content)
+          print(f"Unity-iPhone Target GUID: {iphone_target_guid}")
+          print(f"Unity-iPhone Config List GUID: {iphone_config_list_guid}")
 
-          # 2. Inject target-specific signing settings into Unity-iPhone Release buildSettings
-          def patch_unity_iphone_release(match):
-              block = match.group(0)
-              block = re.sub(r'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = [^;]+;\n', '', block)
-              block = re.sub(r'\t\t\t\tCODE_SIGN_STYLE = [^;]+;\n', '', block)
-              block = re.sub(r'\t\t\t\tCODE_SIGN_IDENTITY = [^;]+;\n', '', block)
-              
-              signing_keys = f'\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{provision_uuid}";\n'
-              block = re.sub(r'(\t\t\tbuildSettings = \{)', r'\1\n' + signing_keys, block)
-              return block
+          # Find Release configuration GUID within iphone_config_list_guid block
+          release_config_guid = "UNKNOWN"
+          if iphone_config_list_guid != "UNKNOWN":
+              list_block_match = re.search(rf'{iphone_config_list_guid}\s*/\*\s*Build configuration list for PBXNativeTarget "Unity-iPhone"\s*\*/\s*=\s*\{\s*isa\s*=\s*XCConfigurationList;[\s\S]*?buildConfigurations\s*=\s*\(([\s\S]*?)\);', content)
+              if list_block_match:
+                  configs_str = list_block_match.group(1)
+                  release_match = re.search(r'([A-Z0-9]+)\s*/\*\s*Release\s*\*/', configs_str)
+                  if release_match:
+                      release_config_guid = release_match.group(1)
+
+          print(f"Unity-iPhone Release Build Configuration GUID: {release_config_guid}")
+
+          # 2. Find UnityFramework target and config list
+          framework_target_match = re.search(r'([A-Z0-9]+)\s*/\*\s*UnityFramework\s*\*/\s*=\s*\{\s*isa\s*=\s*PBXNativeTarget;[\s\S]*?buildConfigurationList\s*=\s*([A-Z0-9]+)', content)
+          framework_config_list_guid = framework_target_match.group(2) if framework_target_match else "UNKNOWN"
+          framework_config_guids = []
+          if framework_config_list_guid != "UNKNOWN":
+              fw_list_match = re.search(rf'{framework_config_list_guid}\s*/\*\s*Build configuration list for PBXNativeTarget "UnityFramework"\s*\*/\s*=\s*\{\s*isa\s*=\s*XCConfigurationList;[\s\S]*?buildConfigurations\s*=\s*\(([\s\S]*?)\);', content)
+              if fw_list_match:
+                  framework_config_guids = re.findall(r'([A-Z0-9]+)\s*/\*', fw_list_match.group(1))
+
+          # 3. Patch XCBuildConfiguration blocks directly
+          def patch_build_configuration(match):
+              config_guid = match.group(1)
+              config_name = match.group(2)
+              block_body = match.group(3)
+
+              # If UnityFramework config: remove provisioning profiles
+              if config_guid in framework_config_guids:
+                  block_body = re.sub(r'\t\t\t\tPROVISIONING_PROFILE[^\n]*\n', '', block_body)
+                  block_body = re.sub(r'\t\t\t\tCODE_SIGN_STYLE[^\n]*\n', '', block_body)
+                  block_body += '\t\t\t\tCODE_SIGN_STYLE = Automatic;\n'
+                  return f'{config_guid} /* {config_name} */ = {{\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {{\n{block_body}\t\t\t}};\n\t\t\tname = {config_name};\n\t\t}};'
+
+              # If Unity-iPhone Release config: inject manual signing & specifier
+              if config_guid == release_config_guid or (config_name == "Release" and config_guid not in framework_config_guids and iphone_target_guid != "UNKNOWN"):
+                  block_body = re.sub(r'\t\t\t\tPROVISIONING_PROFILE[^\n]*\n', '', block_body)
+                  block_body = re.sub(r'\t\t\t\tCODE_SIGN_STYLE[^\n]*\n', '', block_body)
+                  block_body = re.sub(r'\t\t\t\tCODE_SIGN_IDENTITY[^\n]*\n', '', block_body)
+                  block_body = re.sub(r'\t\t\t\tDEVELOPMENT_TEAM[^\n]*\n', '', block_body)
+                  
+                  block_body += '\t\t\t\tCODE_SIGN_STYLE = Manual;\n'
+                  block_body += f'\t\t\t\tDEVELOPMENT_TEAM = "{team_id}";\n'
+                  block_body += '\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";\n'
+                  block_body += '\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";\n'
+                  block_body += f'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "{provision_specifier}";\n'
+                  block_body += f'\t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{provision_specifier}";\n'
+                  return f'{config_guid} /* {config_name} */ = {{\n\t\t\tisa = XCBuildConfiguration;\n\t\t\tbuildSettings = {{\n{block_body}\t\t\t}};\n\t\t\tname = {config_name};\n\t\t}};'
+
+              return match.group(0)
+
+          pattern = re.compile(r'([A-Z0-9]+)\s*/\*\s*(\w+)\s*\*/\s*=\s*\{\s*isa\s*=\s*XCBuildConfiguration;\s*buildSettings\s*=\s*\{([\s\S]*?)\};\s*name\s*=\s*\2;\s*\};')
+          new_content = pattern.sub(patch_build_configuration, content)
 
           with open(pbx_path, "w") as f:
-              f.write(content)
+              f.write(new_content)
 
-          print("Successfully patched target-specific signing settings in project.pbxproj")
+          print("=== PATCHED PBXPROPERTIES SUMMARY FOR UNITY-IPHONE RELEASE ===")
+          print(f"CODE_SIGN_STYLE = Manual")
+          print(f"DEVELOPMENT_TEAM = {team_id}")
+          print(f'CODE_SIGN_IDENTITY = "Apple Distribution"')
+          print(f'PROVISIONING_PROFILE_SPECIFIER = "{provision_specifier}"')
           EOF
 
           # Clean & Archive (without global PROVISIONING_PROFILE_SPECIFIER overriding)
@@ -282,6 +339,7 @@ jobs:
             OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" || exit 1
 
           # Export IPA with Manual Signing ExportOptions.plist
+          PROVISION_SPECIFIER="${PROVISION_NAME:-$PROVISION_UUID}"
           cat <<EOF > $RUNNER_TEMP/exportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.plist">
@@ -298,14 +356,13 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.ektgames.pulsevania</key>
-                  <string>${PROVISION_UUID}</string>
+                  <string>${PROVISION_SPECIFIER}</string>
               </dict>
               <key>uploadSymbols</key>
               <true/>
               <key>compileBitcode</key>
               <false/>
           </dict>
-          </plist>
           EOF
 
           echo "Exporting IPA with ExportOptions.plist..."
