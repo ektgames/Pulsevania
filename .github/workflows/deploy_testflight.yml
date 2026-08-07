@@ -39,6 +39,25 @@ jobs:
           buildName: Pulsevania
           outputPath: Builds/iOS
 
+      # 3b. Print Detailed Unity Log on Failure
+      - name: Print Unity Log output on Failure
+        if: failure()
+        run: |
+          echo "=== UNITY BUILD LOG / EDITOR LOG (LAST 500 LINES) ==="
+          find . -name "*.log" -exec tail -n 500 {} + || true
+          find /root/.unity3d/ -name "*.log" -exec tail -n 500 {} + 2>/dev/null || true
+          find /tmp -name "*.log" -exec tail -n 500 {} + 2>/dev/null || true
+
+      # 3c. Upload Full Unity Build Log Artifact
+      - name: Upload Unity Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-build-log
+          path: |
+            *.log
+            Library/Logs/**/*.log
+
       # 4. Upload exported Xcode Project Artifact
       - name: Upload Xcode Project Artifact
         uses: actions/upload-artifact@v4
@@ -78,13 +97,6 @@ jobs:
           # Create temporary keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Import certificate to keychain
-          CERTIFICATE_P12_PATH=$RUNNER_TEMP/build_certificate.p12
-          echo -n "$P12_BASE64" | base64 --decode -o $CERTIFICATE_P12_PATH
-          security import $CERTIFICATE_P12_PATH -k $KEYCHAIN_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security list-keychains -s $KEYCHAIN_PATH $(security list-keychains | tr -d '"')
 

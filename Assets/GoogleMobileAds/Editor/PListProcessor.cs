@@ -202,18 +202,21 @@ public static class PListProcessor
         string dialogTitle = "Google Mobile Ads";
         string dialogMessage = "Error: " + message;
 
-        if (showOpenSettingsButton)
+        if (!Application.isBatchMode)
         {
-            bool openSettings = EditorUtility.DisplayDialog(
-                dialogTitle, dialogMessage, "Open Settings", "Close");
-            if (openSettings)
+            if (showOpenSettingsButton)
             {
-                GoogleMobileAdsSettingsEditor.OpenInspector();
+                bool openSettings = EditorUtility.DisplayDialog(
+                    dialogTitle, dialogMessage, "Open Settings", "Close");
+                if (openSettings)
+                {
+                    GoogleMobileAdsSettingsEditor.OpenInspector();
+                }
             }
-        }
-        else
-        {
-            EditorUtility.DisplayDialog(dialogTitle, dialogMessage, "Close");
+            else
+            {
+                EditorUtility.DisplayDialog(dialogTitle, dialogMessage, "Close");
+            }
         }
 
         ThrowBuildException("[GoogleMobileAds] " + message);
