@@ -20,7 +20,7 @@ namespace Pulsevania.EditorTools
                 Directory.CreateDirectory(buildPath);
             }
 
-            PlayerSettings.iOS.buildNumber = "6";
+            PlayerSettings.iOS.buildNumber = "7";
             Debug.Log("[BuildScript] Starting iOS build (Xcode export, Build Number: " + PlayerSettings.iOS.buildNumber + ") to path: " + buildPath);
 
             BuildPlayerOptions options = new BuildPlayerOptions
