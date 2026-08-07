@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_and_deploy_ios:
-    name: Build Unity iOS & Upload to TestFlight
-    runs-on: macos-14
+  build_unity_xcode:
+    name: Build Unity iOS (Export Xcode)
+    runs-on: ubuntu-latest
     steps:
       # 1. Checkout Repository
       - name: Checkout repository
@@ -39,7 +39,30 @@ jobs:
           buildName: Pulsevania
           outputPath: Builds/iOS
 
-      # 4. Install Apple Certificate & Provisioning Profile
+      # 4. Upload exported Xcode Project Artifact
+      - name: Upload Xcode Project Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcode-project
+          path: Builds/iOS
+
+  deploy_testflight:
+    name: Deploy to TestFlight (macOS)
+    runs-on: macos-14
+    needs: build_unity_xcode
+    steps:
+      # 1. Checkout Repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Download Exported Xcode Project Artifact
+      - name: Download Xcode Project Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: xcode-project
+          path: Builds/iOS
+
+      # 3. Install Apple Certificate & Provisioning Profile
       - name: Install Apple Certificate and Provisioning Profile
         env:
           P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
@@ -71,7 +94,7 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PROVISION_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
-      # 5. Build Xcode Project & Create IPA
+      # 4. Build Xcode Project & Create IPA
       - name: Build Xcode Project to IPA
         env:
           KEYCHAIN_PASSWORD: "ci_keychain_password"
@@ -114,7 +137,7 @@ jobs:
             -exportOptionsPlist $RUNNER_TEMP/exportOptions.plist \
             -exportPath $RUNNER_TEMP/build_ipa || exit 1
 
-      # 6. Upload IPA to TestFlight via App Store Connect API Key
+      # 5. Upload IPA to TestFlight via App Store Connect API Key
       - name: Upload to TestFlight
         env:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}

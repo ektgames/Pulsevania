@@ -33,13 +33,32 @@ namespace Pulsevania.EditorTools
             BuildReport report = BuildPipeline.BuildPlayer(options);
             BuildSummary summary = report.summary;
 
-            if (summary.result == BuildResult.Succeeded)
+            Debug.Log($"[BuildScript] Build Summary Result: {summary.result}, Total Errors: {summary.totalErrors}, Time: {summary.totalTime}");
+
+            if (report.steps != null)
             {
-                Debug.Log($"[BuildScript] iOS build succeeded! Size: {summary.totalSize} bytes, Time: {summary.totalTime}");
+                foreach (var step in report.steps)
+                {
+                    if (step.messages != null)
+                    {
+                        foreach (var msg in step.messages)
+                        {
+                            if (msg.type == LogType.Error || msg.type == LogType.Exception)
+                            {
+                                string errorMsg = $"[BuildScript Error] Step '{step.name}': {msg.content}";
+                                Debug.LogError(errorMsg);
+                                Console.WriteLine(errorMsg);
+                            }
+                        }
+                    }
+                }
             }
-            else
+
+            if (summary.result != BuildResult.Succeeded)
             {
-                Debug.LogError($"[BuildScript] iOS build failed with status: {summary.result}, Errors: {summary.totalErrors}");
+                string failMsg = $"[BuildScript] iOS build failed with status: {summary.result}, Errors: {summary.totalErrors}";
+                Debug.LogError(failMsg);
+                Console.WriteLine(failMsg);
                 if (Application.isBatchMode)
                 {
                     EditorApplication.Exit(1);
@@ -77,6 +96,9 @@ namespace Pulsevania.EditorTools
                 }
             }
 
+            string logScenes = $"[BuildScript] Including {scenePaths.Count} scene(s) in build: " + string.Join(", ", scenePaths);
+            Debug.Log(logScenes);
+            Console.WriteLine(logScenes);
             return scenePaths.ToArray();
         }
     }
