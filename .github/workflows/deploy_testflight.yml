@@ -467,18 +467,30 @@ jobs:
       # 5. Upload IPA to TestFlight via App Store Connect API Key
       - name: Upload to TestFlight
         env:
-          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          API_KEY_CONTENT: ${{ secrets.APPLE_CONNECT_KEY_CONTENT }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID || secrets.APP_STORE_CONNECT_KEY_ID || secrets.APPLE_CONNECT_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID || secrets.APPLE_ISSUER_ID || secrets.APP_STORE_CONNECT_ISSUER }}
+          API_KEY_CONTENT: ${{ secrets.APPLE_CONNECT_KEY_CONTENT || secrets.APP_STORE_CONNECT_API_KEY_CONTENT || secrets.APP_STORE_CONNECT_KEY_CONTENT || secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
         run: |
-          if [ -z "$API_KEY_ID" ] || [ -z "$API_KEY_CONTENT" ]; then
-            echo "::warning::App Store Connect API Key secrets missing. Skipping TestFlight upload."
-            exit 0
+          if [ -z "$API_KEY_ID" ] || [ -z "$API_KEY_CONTENT" ] || [ -z "$API_ISSUER_ID" ]; then
+            echo "::error::App Store Connect API Key secrets missing! Please verify APP_STORE_CONNECT_API_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, and APPLE_CONNECT_KEY_CONTENT in GitHub Secrets."
+            exit 1
           fi
 
-          # Write API Key file
+          echo "App Store Connect Key ID: $API_KEY_ID"
+          echo "App Store Connect Issuer ID: $API_ISSUER_ID"
+
+          # Write API Key file (supporting raw P8 or base64)
           mkdir -p ~/.appstoreconnect/private_keys
-          echo "$API_KEY_CONTENT" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
+          KEY_FILE="$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
+
+          if echo "$API_KEY_CONTENT" | grep -q "BEGIN PRIVATE KEY"; then
+            echo "$API_KEY_CONTENT" > "$KEY_FILE"
+          else
+            echo "$API_KEY_CONTENT" | base64 -d > "$KEY_FILE" 2>/dev/null || echo "$API_KEY_CONTENT" > "$KEY_FILE"
+          fi
+
+          chmod 600 "$KEY_FILE"
+          echo "AuthKey P8 file generated at $KEY_FILE"
 
           # Find IPA file
           IPA_PATH=$(find $RUNNER_TEMP/build_ipa -name "*.ipa" | head -n 1)
