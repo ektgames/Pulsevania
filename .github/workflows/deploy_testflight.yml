@@ -85,12 +85,30 @@ jobs:
 
   deploy_testflight:
     name: Deploy to TestFlight (macOS)
-    runs-on: macos-14
+    runs-on: macos-15
     needs: build_unity_xcode
     steps:
       # 1. Checkout Repository
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # 1b. Select Latest Xcode & Verify SDK Version
+      - name: Select Latest Xcode & Verify SDK Version
+        run: |
+          echo "=== AVAILABLE XCODE VERSIONS ==="
+          ls -d /Applications/Xcode*.app || true
+
+          LATEST_XCODE=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$LATEST_XCODE" ]; then
+            echo "Selecting Xcode path: $LATEST_XCODE"
+            sudo xcode-select -s "$LATEST_XCODE"
+          fi
+
+          echo "=== VERIFYING XCODEBUILD VERSION ==="
+          xcodebuild -version
+
+          echo "=== VERIFYING IOS SDK VERSION ==="
+          xcrun --sdk iphoneos --show-sdk-version
 
       # 2. Download Exported Xcode Project Artifact
       - name: Download Xcode Project Artifact
