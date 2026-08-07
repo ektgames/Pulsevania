@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "com.community.antigravity-unity": "file:C:/Users/ertug/Desktop/ANTİGRAVİTY UNİTY BİRLEŞTİRİCİ MASTER/antigravity-unity-master",
     "com.unity.2d.animation": "14.0.4",
     "com.unity.2d.aseprite": "4.0.2",
     "com.unity.2d.psdimporter": "13.0.3",

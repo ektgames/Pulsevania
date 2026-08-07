@@ -1,11 +1,5 @@
 {
   "dependencies": {
-    "com.community.antigravity-unity": {
-      "version": "file:C:/Users/ertug/Desktop/ANTİGRAVİTY UNİTY BİRLEŞTİRİCİ MASTER/antigravity-unity-master",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {}
-    },
     "com.unity.2d.animation": {
       "version": "14.0.4",
       "depth": 0,
