@@ -381,34 +381,16 @@ jobs:
           print("Verified NO PROVISIONING_PROFILE in UnityFramework configurations.")
           PYEOF
 
-          # CocoaPods dependency resolution (Google Mobile Ads & UMP)
-          if [ -f "Podfile" ]; then
-            echo "=== RUNNING COCOAPODS (POD INSTALL) FOR ADMOB & UMP DEPENDENCIES ==="
-            cat Podfile
-            pod repo update || true
-            pod install --repo-update || pod install
-          else
-            echo "::warning::No Podfile found in Builds/iOS!"
-          fi
-
-          if [ -d "Unity-iPhone.xcworkspace" ]; then
-            BUILD_CONTAINER="-workspace Unity-iPhone.xcworkspace"
-            echo "Using Xcode Workspace: Unity-iPhone.xcworkspace"
-          else
-            BUILD_CONTAINER="-project Unity-iPhone.xcodeproj"
-            echo "Using Xcode Project: Unity-iPhone.xcodeproj"
-          fi
-
           echo "=== XCODEBUILD SHOWBUILDSETTINGS FOR UNITY-IPHONE RELEASE ==="
           xcodebuild \
-            $BUILD_CONTAINER \
-            -scheme Unity-iPhone \
+            -project Unity-iPhone.xcodeproj \
+            -target Unity-iPhone \
             -configuration Release \
             -showBuildSettings | grep -iE "TARGET_NAME|PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|DEVELOPMENT_TEAM|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|PROVISIONING_PROFILE_SPECIFIER|CODE_SIGNING_ALLOWED|CODE_SIGNING_REQUIRED|EXPANDED_CODE_SIGN_IDENTITY|EXPANDED_PROVISIONING_PROFILE" || true
 
           # Clean & Archive with Manual Signing (Apple Distribution)
           xcodebuild archive \
-            $BUILD_CONTAINER \
+            -project Unity-iPhone.xcodeproj \
             -scheme Unity-iPhone \
             -configuration Release \
             -destination 'generic/platform=iOS' \
