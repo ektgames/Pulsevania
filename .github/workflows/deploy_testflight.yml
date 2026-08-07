@@ -180,7 +180,7 @@ jobs:
           security default-keychain -s "$KEYCHAIN_PATH"
 
           # 6. Verify certificate in keychain
-          echo "=== VERIFYING IMPORTED CERTIFICATES ==="
+          echo "=== VERIFYING IMPORTED CODESIGNING IDENTITIES ==="
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
           # 7. Decode and install Provisioning Profile
@@ -192,20 +192,29 @@ jobs:
 
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
 
-          UUID=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>UUID</key>" | grep "<string>" | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          PROVISION_UUID=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>UUID</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          PROVISION_NAME=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>Name</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
+          PROVISION_APP_ID=$(security cms -D -i "$PROVISION_PATH" 2>/dev/null | grep -A1 "<key>application-identifier</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>//' -e 's/<\/string>.*//')
 
-          if [ -n "$UUID" ]; then
-            cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
-            echo "Successfully installed Provisioning Profile as $UUID.mobileprovision"
+          echo "=== PROVISIONING PROFILE METADATA ==="
+          echo "Profile Name: $PROVISION_NAME"
+          echo "Profile UUID: $PROVISION_UUID"
+          echo "App Identifier: $PROVISION_APP_ID"
+
+          if [ -n "$PROVISION_UUID" ]; then
+            cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROVISION_UUID.mobileprovision"
+            echo "Successfully installed Provisioning Profile as $PROVISION_UUID.mobileprovision"
+            echo "PROVISION_UUID=$PROVISION_UUID" >> $GITHUB_ENV
           else
             cp "$PROVISION_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-            echo "Installed Provisioning Profile as profile.mobileprovision (UUID not parsed)"
+            echo "Installed Provisioning Profile as profile.mobileprovision"
           fi
 
       # 4. Build Xcode Project & Create IPA
       - name: Build Xcode Project to IPA
         env:
           KEYCHAIN_PASSWORD: "ci_keychain_password"
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           if [ ! -d "Builds/iOS/Unity-iPhone.xcodeproj" ]; then
             echo "::error::Builds/iOS/Unity-iPhone.xcodeproj not found. Cannot proceed with Xcode build."
@@ -214,17 +223,25 @@ jobs:
 
           cd Builds/iOS
 
-          # Clean & Archive
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
+
+          echo "Starting Xcode Archive with Manual Signing for App Store / TestFlight..."
+          echo "Team ID: $TEAM_ID"
+          echo "Provisioning Profile UUID: $PROVISION_UUID"
+
+          # Clean & Archive with Manual Signing (Apple Distribution)
           xcodebuild archive \
             -project Unity-iPhone.xcodeproj \
             -scheme Unity-iPhone \
             -configuration Release \
             -archivePath $RUNNER_TEMP/Unity-iPhone.xcarchive \
-            -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_STYLE="Automatic" || exit 1
+            CODE_SIGN_STYLE="Manual" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISION_UUID" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" || exit 1
 
-          # Export IPA
+          # Export IPA with Manual Signing ExportOptions.plist
           cat <<EOF > $RUNNER_TEMP/exportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.plist">
@@ -232,6 +249,17 @@ jobs:
           <dict>
               <key>method</key>
               <string>app-store</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>teamID</key>
+              <string>${TEAM_ID}</string>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.ektgames.pulsevania</key>
+                  <string>${PROVISION_UUID}</string>
+              </dict>
               <key>uploadSymbols</key>
               <true/>
               <key>compileBitcode</key>
@@ -240,6 +268,7 @@ jobs:
           </plist>
           EOF
 
+          echo "Exporting IPA with ExportOptions.plist..."
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/Unity-iPhone.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/exportOptions.plist \
