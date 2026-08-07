@@ -38,35 +38,42 @@ jobs:
           buildMethod: Pulsevania.EditorTools.BuildScript.BuildiOS
           buildName: Pulsevania
           buildsPath: Builds
-          customParameters: -logFile /github/workspace/unity_build.log
 
-      # 3b. Print Detailed Unity Log on Failure
-      - name: Print Unity Log output on Failure
-        if: failure()
+      # 3b. Extract and Print Detailed Unity Editor.log
+      - name: Extract and Print Unity Editor.log
+        if: always()
         run: |
-          echo "=== UNITY BUILD ERROR & EXCEPTION SUMMARY ==="
-          if [ -f "unity_build.log" ]; then
-            grep -iE "error|exception|failed|iOS|Xcode" unity_build.log | tail -n 150 || true
-            echo "=== LAST 300 LINES OF UNITY LOG ==="
-            tail -n 300 unity_build.log
-          elif [ -f "unity-builder.log" ]; then
-            grep -iE "error|exception|failed|iOS|Xcode" unity-builder.log | tail -n 150 || true
-            echo "=== LAST 300 LINES OF UNITY LOG ==="
-            tail -n 300 unity-builder.log
+          echo "=== SEARCHING FOR SYSTEM-WIDE UNITY EDITOR.LOG ==="
+          sudo chmod -R 777 . /tmp 2>/dev/null || true
+          
+          # Find all Editor.log or unity log files across the filesystem
+          LOG_FILE=$(sudo find / -name "Editor.log" -o -name "unity*.log" 2>/dev/null | grep -v "/proc" | grep -v "/sys" | head -n 1)
+
+          if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+            echo "Found Unity Editor Log at: $LOG_FILE"
+            sudo cp "$LOG_FILE" $GITHUB_WORKSPACE/extracted_unity_editor.log
+            sudo chmod 777 $GITHUB_WORKSPACE/extracted_unity_editor.log
+            
+            echo "=== CRITICAL ERRORS & EXCEPTIONS IN EDITOR.LOG ==="
+            grep -iE "error|exception|failed|iOS|Xcode|BuildPipeline|BuildScript|Compilation" $GITHUB_WORKSPACE/extracted_unity_editor.log | tail -n 200 || true
+            
+            echo "=== LAST 300 LINES OF EDITOR.LOG ==="
+            tail -n 300 $GITHUB_WORKSPACE/extracted_unity_editor.log || true
           else
-            find . /tmp -name "*.log" 2>/dev/null -exec grep -iE "error|exception|failed" {} + | tail -n 150 || true
+            echo "No Editor.log found via find command. Checking workspace..."
+            ls -la *.log 2>/dev/null || true
           fi
 
-      # 3c. Upload Full Unity Build Log Artifact
+      # 3c. Upload Full Unity Build Log Artifact (Always)
       - name: Upload Unity Log Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unity-build-log
+          name: unity-editor-log
           path: |
-            unity_build.log
-            unity-builder.log
+            extracted_unity_editor.log
             *.log
+            Library/Logs/**/*.log
           if-no-files-found: warn
 
       # 4. Upload exported Xcode Project Artifact
