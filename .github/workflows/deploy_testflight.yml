@@ -38,17 +38,23 @@ jobs:
           buildMethod: Pulsevania.EditorTools.BuildScript.BuildiOS
           buildName: Pulsevania
           buildsPath: Builds
-          customParameters: -logFile unity-builder.log
+          customParameters: -logFile /github/workspace/unity_build.log
 
       # 3b. Print Detailed Unity Log on Failure
       - name: Print Unity Log output on Failure
         if: failure()
         run: |
-          echo "=== UNITY BUILD LOG (LAST 500 LINES) ==="
-          if [ -f "unity-builder.log" ]; then
-            tail -n 500 unity-builder.log
+          echo "=== UNITY BUILD ERROR & EXCEPTION SUMMARY ==="
+          if [ -f "unity_build.log" ]; then
+            grep -iE "error|exception|failed|iOS|Xcode" unity_build.log | tail -n 150 || true
+            echo "=== LAST 300 LINES OF UNITY LOG ==="
+            tail -n 300 unity_build.log
+          elif [ -f "unity-builder.log" ]; then
+            grep -iE "error|exception|failed|iOS|Xcode" unity-builder.log | tail -n 150 || true
+            echo "=== LAST 300 LINES OF UNITY LOG ==="
+            tail -n 300 unity-builder.log
           else
-            find . -name "*.log" -exec tail -n 500 {} + || true
+            find . /tmp -name "*.log" 2>/dev/null -exec grep -iE "error|exception|failed" {} + | tail -n 150 || true
           fi
 
       # 3c. Upload Full Unity Build Log Artifact
@@ -57,7 +63,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unity-build-log
-          path: unity-builder.log
+          path: |
+            unity_build.log
+            unity-builder.log
+            *.log
+          if-no-files-found: warn
 
       # 4. Upload exported Xcode Project Artifact
       - name: Upload Xcode Project Artifact
@@ -132,7 +142,7 @@ jobs:
           # Export IPA
           cat <<EOF > $RUNNER_TEMP/exportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.plist">
           <plist version="1.0">
           <dict>
               <key>method</key>
