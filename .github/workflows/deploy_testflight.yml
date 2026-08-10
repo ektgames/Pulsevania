@@ -601,10 +601,14 @@ jobs:
             exit 1
           fi
 
-          echo "Installing Python dependencies (pyjwt, cryptography, requests)..."
-          python3 -m pip install pyjwt cryptography requests >/dev/null 2>&1 || pip3 install pyjwt cryptography requests
+          echo "Creating Python virtual environment at $RUNNER_TEMP/testflight-venv..."
+          python3 -m venv "$RUNNER_TEMP/testflight-venv"
 
-          python3 - << 'PYEOF'
+          echo "Installing Python dependencies (pyjwt, cryptography, requests)..."
+          "$RUNNER_TEMP/testflight-venv/bin/python" -m pip install --upgrade pip setuptools wheel
+          "$RUNNER_TEMP/testflight-venv/bin/python" -m pip install pyjwt cryptography requests
+
+          "$RUNNER_TEMP/testflight-venv/bin/python" - << 'PYEOF'
           import os, sys, time, json
           import jwt
           import requests
