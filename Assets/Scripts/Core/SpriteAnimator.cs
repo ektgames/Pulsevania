@@ -19,7 +19,7 @@ namespace Pulsevania.Core
     public class SpriteAnimator : MonoBehaviour
     {
         [System.Serializable]
-        public struct AnimationClip
+        public class AnimationClip
         {
             public AnimState state;
             public Sprite[] frames;
