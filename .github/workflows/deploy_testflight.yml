@@ -588,3 +588,198 @@ jobs:
             echo "::error::IPA file not found in $RUNNER_TEMP/build_ipa"
             exit 1
           fi
+
+      # 6. Wait for App Store Connect Processing & Auto-Assign to Beta Group
+      - name: Auto-Assign Build to TestFlight Beta Group
+        env:
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID || secrets.APP_STORE_CONNECT_KEY_ID || secrets.APPLE_CONNECT_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID || secrets.APPLE_ISSUER_ID || secrets.APP_STORE_CONNECT_ISSUER }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          if [ -z "$API_KEY_ID" ] || [ -z "$API_ISSUER_ID" ]; then
+            echo "::error::App Store Connect API Key secrets missing for Beta Group Assignment!"
+            exit 1
+          fi
+
+          echo "Installing Python dependencies (pyjwt, cryptography, requests)..."
+          python3 -m pip install pyjwt cryptography requests >/dev/null 2>&1 || pip3 install pyjwt cryptography requests
+
+          python3 - << 'PYEOF'
+          import os, sys, time, json
+          import jwt
+          import requests
+
+          api_key_id = os.environ.get("API_KEY_ID")
+          api_issuer_id = os.environ.get("API_ISSUER_ID")
+          build_number = os.environ.get("BUILD_NUMBER")
+          bundle_id = "com.ektgames.pulsevania"
+
+          if not api_key_id or not api_issuer_id or not build_number:
+              print("::error::Missing required API credentials or BUILD_NUMBER!")
+              sys.exit(1)
+
+          key_file = os.path.expanduser(f"~/.appstoreconnect/private_keys/AuthKey_{api_key_id}.p8")
+          if not os.path.exists(key_file):
+              print(f"::error::Private key file {key_file} not found!")
+              sys.exit(1)
+
+          with open(key_file, "r") as f:
+              private_key = f.read()
+
+          def generate_token():
+              now = int(time.time())
+              payload = {
+                  "iss": api_issuer_id,
+                  "exp": now + 1200,
+                  "aud": "appstoreconnect-v1"
+              }
+              headers = {
+                  "alg": "ES256",
+                  "kid": api_key_id,
+                  "typ": "JWT"
+              }
+              return jwt.encode(payload, private_key, algorithm="ES256", headers=headers)
+
+          # 1. Fetch App ID
+          print(f"=== FETCHING APP RESOURCE FOR BUNDLE ID: {bundle_id} ===")
+          tok = generate_token()
+          app_res = requests.get(
+              f"https://api.appstoreconnect.apple.com/v1/apps?filter[bundleId]={bundle_id}",
+              headers={"Authorization": f"Bearer {tok}"}
+          )
+
+          if app_res.status_code != 200:
+              print(f"::error::Failed to query app resource: HTTP {app_res.status_code} - {app_res.text}")
+              sys.exit(1)
+
+          apps = app_res.json().get("data", [])
+          if not apps:
+              print(f"::error::App with bundleId '{bundle_id}' not found in App Store Connect!")
+              sys.exit(1)
+
+          app_id = apps[0]["id"]
+          print(f"Located App Resource ID: {app_id}")
+
+          # 2. Fetch Beta Groups for App
+          print(f"=== FETCHING BETA GROUPS FOR APP ID: {app_id} ===")
+          tok = generate_token()
+          bg_res = requests.get(
+              f"https://api.appstoreconnect.apple.com/v1/apps/{app_id}/betaGroups",
+              headers={"Authorization": f"Bearer {tok}"}
+          )
+
+          if bg_res.status_code != 200:
+              print(f"::error::Failed to query beta groups: HTTP {bg_res.status_code} - {bg_res.text}")
+              sys.exit(1)
+
+          beta_groups = bg_res.json().get("data", [])
+          if not beta_groups:
+              print(f"::error::No beta groups found for app '{bundle_id}'!")
+              sys.exit(1)
+
+          target_group = None
+          for bg in beta_groups:
+              name = bg.get("attributes", {}).get("name", "")
+              is_internal = bg.get("attributes", {}).get("isInternalGroup", False)
+              has_access_all = bg.get("attributes", {}).get("hasAccessToAllBuilds", False)
+              print(f"Beta Group Found: '{name}' (ID: {bg['id']}, Internal: {is_internal}, hasAccessToAllBuilds: {has_access_all})")
+              
+              if is_internal or "TestEKT" in name or target_group is None:
+                  target_group = bg
+
+          if not target_group:
+              print("::error::Target beta group could not be resolved!")
+              sys.exit(1)
+
+          group_id = target_group["id"]
+          group_name = target_group["attributes"]["name"]
+          has_access_all = target_group["attributes"].get("hasAccessToAllBuilds", False)
+
+          if not has_access_all:
+              print(f"[Notice] Beta group '{group_name}' hasAccessToAllBuilds is False. Explicit build-to-betaGroup relationship assignment via API is required.")
+
+          # 3. Poll App Store Connect for Processed Build
+          print(f"=== POLLING APP STORE CONNECT FOR PROCESSED BUILD NUMBER '{build_number}' ===")
+          max_attempts = 40  # 40 * 30s = 20 minutes max
+          build_resource = None
+
+          for attempt in range(1, max_attempts + 1):
+              tok = generate_token()
+              build_url = f"https://api.appstoreconnect.apple.com/v1/builds?filter[app]={app_id}&filter[version]={build_number}"
+              b_res = requests.get(build_url, headers={"Authorization": f"Bearer {tok}"})
+              
+              if b_res.status_code == 200:
+                  builds = b_res.json().get("data", [])
+                  for b in builds:
+                      ver = b.get("attributes", {}).get("version")
+                      state = b.get("attributes", {}).get("processingState")
+                      if ver == str(build_number):
+                          print(f"[Attempt {attempt}/{max_attempts}] Found Build version '{ver}' - processingState: '{state}'")
+                          if state == "VALID":
+                              build_resource = b
+                              break
+                          elif state in ["FAILED", "INVALID"]:
+                              print(f"::error::Build processing failed on App Store Connect with state: '{state}'")
+                              sys.exit(1)
+                  if build_resource:
+                      break
+              else:
+                  print(f"[Attempt {attempt}/{max_attempts}] API query returned HTTP {b_res.status_code}")
+              
+              time.sleep(30)
+
+          if not build_resource:
+              print(f"::error::Timed out waiting for Build '{build_number}' to transition to VALID processingState on App Store Connect!")
+              sys.exit(1)
+
+          build_id = build_resource["id"]
+          print(f"Located Processed Build Resource ID: {build_id}")
+
+          # 4. Assign Build to Beta Group via POST
+          print(f"=== POST /v1/builds/{build_id}/relationships/betaGroups ===")
+          tok = generate_token()
+          assign_url = f"https://api.appstoreconnect.apple.com/v1/builds/{build_id}/relationships/betaGroups"
+          payload = {
+              "data": [
+                  {
+                      "type": "betaGroups",
+                      "id": group_id
+                  }
+              ]
+          }
+          assign_res = requests.post(
+              assign_url,
+              headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
+              json=payload
+          )
+
+          if assign_res.status_code not in [200, 204]:
+              print(f"::error::Failed to link build to beta group! HTTP {assign_res.status_code}: {assign_res.text}")
+              sys.exit(1)
+
+          print(f"Relationship POST request succeeded with HTTP status: {assign_res.status_code}")
+
+          # 5. Verify Relationship via GET
+          print(f"=== GET /v1/builds/{build_id}/relationships/betaGroups ===")
+          tok = generate_token()
+          verify_url = f"https://api.appstoreconnect.apple.com/v1/builds/{build_id}/relationships/betaGroups"
+          verify_res = requests.get(verify_url, headers={"Authorization": f"Bearer {tok}"})
+
+          if verify_res.status_code != 200:
+              print(f"::error::Relationship verification GET failed with HTTP {verify_res.status_code}: {verify_res.text}")
+              sys.exit(1)
+
+          linked_ids = [g["id"] for g in verify_res.json().get("data", [])]
+          if group_id not in linked_ids:
+              print(f"::error::Verification failed! Beta Group ID '{group_id}' was not returned in linked groups: {linked_ids}")
+              sys.exit(1)
+
+          # 6. Final Required Verification Block
+          print("\n" + "=" * 60)
+          print("TESTFLIGHT GROUP ASSIGNMENT SUCCESS")
+          print(f"Build: {build_number}")
+          print(f"Build ID: {build_id}")
+          print(f"Beta Group: {group_name}")
+          print(f"Beta Group ID: {group_id}")
+          print("=" * 60 + "\n")
+          PYEOF
