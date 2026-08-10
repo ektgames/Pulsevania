@@ -49,6 +49,7 @@ jobs:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          BUILD_NUMBER: ${{ github.run_number }}
         with:
           targetPlatform: iOS
           buildMethod: Pulsevania.EditorTools.BuildScript.BuildiOS
@@ -256,6 +257,7 @@ jobs:
         env:
           KEYCHAIN_PASSWORD: "ci_keychain_password"
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           if [ ! -d "Builds/iOS/Unity-iPhone.xcodeproj" ]; then
             echo "::error::Builds/iOS/Unity-iPhone.xcodeproj not found. Cannot proceed with Xcode build."
@@ -264,8 +266,11 @@ jobs:
 
           cd Builds/iOS
 
+          BUILD_NUM="${BUILD_NUMBER:-65}"
+          echo "=== DYNAMIC BUILD NUMBER FOR XCODE ARCHIVE: $BUILD_NUM ==="
+
           if [ -f "Info.plist" ]; then
-            plutil -replace CFBundleVersion -string "9" Info.plist 2>/dev/null || true
+            plutil -replace CFBundleVersion -string "$BUILD_NUM" Info.plist 2>/dev/null || true
           fi
           echo "=== VERIFYING CFBundleVersion IN INFO.PLIST ==="
           plutil -p Info.plist | grep -i CFBundleVersion || true
@@ -414,7 +419,8 @@ jobs:
                   new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "{provision_specifier}";\n')
                   new_lines.append(f'\t\t\t\tPROVISIONING_PROFILE = "{provision_uuid}";\n')
                   new_lines.append(f'\t\t\t\t"PROVISIONING_PROFILE[sdk=iphoneos*]" = "{provision_uuid}";\n')
-                  new_lines.append('\t\t\t\tCURRENT_PROJECT_VERSION = 9;\n')
+                  build_num = os.environ.get("BUILD_NUMBER", "65")
+                  new_lines.append(f'\t\t\t\tCURRENT_PROJECT_VERSION = {build_num};\n')
 
           with open(pbx_path, "w") as f:
               f.writelines(new_lines)

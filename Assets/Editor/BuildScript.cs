@@ -20,7 +20,12 @@ namespace Pulsevania.EditorTools
                 Directory.CreateDirectory(buildPath);
             }
 
-            PlayerSettings.iOS.buildNumber = "9";
+            string envBuildNumber = System.Environment.GetEnvironmentVariable("BUILD_NUMBER")
+                ?? System.Environment.GetEnvironmentVariable("GITHUB_RUN_NUMBER");
+            if (!string.IsNullOrEmpty(envBuildNumber))
+            {
+                PlayerSettings.iOS.buildNumber = envBuildNumber;
+            }
             Debug.Log("[BuildScript] Starting iOS build (Xcode export, Build Number: " + PlayerSettings.iOS.buildNumber + ") to path: " + buildPath);
 
             BuildPlayerOptions options = new BuildPlayerOptions
