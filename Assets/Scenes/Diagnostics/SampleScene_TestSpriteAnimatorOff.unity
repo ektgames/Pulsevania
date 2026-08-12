@@ -24169,7 +24169,7 @@ MonoBehaviour:
   playerLayer:
     serializedVersion: 2
     m_Bits: 256
-  spriteAnimator: {fileID: 1970253849}
+  spriteAnimator: {fileID: 0}
 --- !u!114 &1970253850
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24403,7 +24403,7 @@ MonoBehaviour:
   attackCooldown: 0.3
   rangedCost: 5
   climbSpeed: 4
-  spriteAnimator: {fileID: 1972724057}
+  spriteAnimator: {fileID: 0}
   currentHP: 100
   maxHP: 100
   extraHearts: 1
