@@ -58,7 +58,7 @@ namespace Pulsevania.Core
                 else if (stateName == "Death") spriteAnimator.PlayState(AnimState.Death, force);
                 else if (stateName == "Spell")
                 {
-                    SpriteAnimator.AnimationClip dummy;
+                    SpriteAnimator.SpriteAnimationClip dummy;
                     if (spriteAnimator.TryGetClip(AnimState.Spell, out dummy))
                         spriteAnimator.PlayState(AnimState.Spell, force);
                     else if (spriteAnimator.TryGetClip(AnimState.Cast, out dummy))

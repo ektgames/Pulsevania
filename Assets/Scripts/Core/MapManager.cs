@@ -5118,7 +5118,7 @@ namespace Pulsevania.Core
                 child.transform.localPosition = new Vector3(0f, yOffset, 0f);
 
                 // Set initial sprite from animator clip to get correct sprite dimensions
-                SpriteAnimator.AnimationClip idleClip;
+                SpriteAnimator.SpriteAnimationClip idleClip;
                 if (animator != null && animator.TryGetClip(AnimState.Idle, out idleClip) && idleClip.frames != null && idleClip.frames.Length > 0)
                 {
                     var sr = child.GetComponent<SpriteRenderer>();
@@ -5163,10 +5163,10 @@ namespace Pulsevania.Core
 
             if (!loadedCustom)
             {
-                List<SpriteAnimator.AnimationClip> animClips = new List<SpriteAnimator.AnimationClip>();
+                List<SpriteAnimator.SpriteAnimationClip> animClips = new List<SpriteAnimator.SpriteAnimationClip>();
 
                 // Idle Clip (2 frames)
-                animClips.Add(new SpriteAnimator.AnimationClip
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip
                 {
                     state = AnimState.Idle,
                     frames = new Sprite[] {
@@ -5178,7 +5178,7 @@ namespace Pulsevania.Core
                 });
 
                 // Walk Clip (2 frames)
-                animClips.Add(new SpriteAnimator.AnimationClip
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip
                 {
                     state = AnimState.Walk,
                     frames = new Sprite[] {
@@ -5190,7 +5190,7 @@ namespace Pulsevania.Core
                 });
 
                 // Attack Clip (2 frames)
-                animClips.Add(new SpriteAnimator.AnimationClip
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip
                 {
                     state = AnimState.Attack,
                     frames = new Sprite[] {
@@ -5202,7 +5202,7 @@ namespace Pulsevania.Core
                 });
 
                 // Death Clip (1 frame)
-                animClips.Add(new SpriteAnimator.AnimationClip
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip
                 {
                     state = AnimState.Death,
                     frames = new Sprite[] {
@@ -6169,7 +6169,7 @@ namespace Pulsevania.Core
 #if UNITY_EDITOR
         private bool LoadCustomMonsterAnimations(SpriteAnimator animator, EnemyGuardian.MonsterBehavior behavior, int roomLevel)
         {
-            List<SpriteAnimator.AnimationClip> animClips = new List<SpriteAnimator.AnimationClip>();
+            List<SpriteAnimator.SpriteAnimationClip> animClips = new List<SpriteAnimator.SpriteAnimationClip>();
 
             // If it is the Level 30 Boss (Bringer of Death), load from Assets/Bringer Of Death/Sprite Sheet/Bringer-of-Death-SpritSheet.png
             if (behavior == EnemyGuardian.MonsterBehavior.Boss && roomLevel == 30)
@@ -6180,31 +6180,31 @@ namespace Pulsevania.Core
                 {
                     // 1. Idle (0..7)
                     Sprite[] idleSprites = ExtractSprites(allSprites, 0, 8);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 8f, loop = true });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 8f, loop = true });
 
                     // 2. Walk (8..15)
                     Sprite[] walkSprites = ExtractSprites(allSprites, 8, 8);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 8f, loop = true });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 8f, loop = true });
 
                     // 3. Attack (16..25)
                     Sprite[] attackSprites = ExtractSprites(allSprites, 16, 10);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 10f, loop = false });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 10f, loop = false });
 
                     // 4. Hurt (26..28)
                     Sprite[] hurtSprites = ExtractSprites(allSprites, 26, 3);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
 
                     // 5. Death (29..38)
                     Sprite[] deathSprites = ExtractSprites(allSprites, 29, 10);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
 
                     // 6. Cast (39..47)
                     Sprite[] castSprites = ExtractSprites(allSprites, 39, 9);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Cast, frames = castSprites, frameRate = 8f, loop = false });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Cast, frames = castSprites, frameRate = 8f, loop = false });
 
                     // 7. Spell (48..63)
                     Sprite[] spellSprites = ExtractSprites(allSprites, 48, 16);
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Spell, frames = spellSprites, frameRate = 12f, loop = false });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Spell, frames = spellSprites, frameRate = 12f, loop = false });
 
                     if (animClips.Count > 0)
                     {
@@ -6223,27 +6223,27 @@ namespace Pulsevania.Core
                 // 1. Idle (idle_01 to idle_06)
                 Sprite[] idleSprites = LoadMultipleAssetSprites(folder, "idle", 6, "00");
                 if (idleSprites != null && idleSprites.Length > 0)
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 8f, loop = true });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 8f, loop = true });
 
                 // 2. Walk (walk_01 to walk_06)
                 Sprite[] walkSprites = LoadMultipleAssetSprites(folder, "walk", 6, "00");
                 if (walkSprites == null || walkSprites.Length == 0) walkSprites = idleSprites;
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 10f, loop = true });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 10f, loop = true });
 
                 // 3. Attack (strike_01 to strike_05)
                 Sprite[] attackSprites = LoadMultipleAssetSprites(folder, "strike", 5, "00");
                 if (attackSprites == null || attackSprites.Length == 0) attackSprites = idleSprites;
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 12f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 12f, loop = false });
 
                 // 4. Death (die_001 to die_010)
                 Sprite[] deathSprites = LoadMultipleAssetSprites(folder, "die", 10, "000");
                 if (deathSprites == null || deathSprites.Length == 0) deathSprites = new Sprite[] { idleSprites[0] };
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
 
                 // 5. Hurt (hurt_01 to hurt_02)
                 Sprite[] hurtSprites = LoadMultipleAssetSprites(folder, "hurt", 2, "00");
                 if (hurtSprites == null || hurtSprites.Length == 0) hurtSprites = new Sprite[] { idleSprites[0] };
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
 
                 if (animClips.Count > 0)
                 {
@@ -6259,27 +6259,27 @@ namespace Pulsevania.Core
                 // 1. Idle
                 Sprite[] idleSprites = LoadSlimeSpritesFromFolder("Idle");
                 if (idleSprites != null && idleSprites.Length > 0)
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 6f, loop = true });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 6f, loop = true });
 
                 // 2. Walk
                 Sprite[] walkSprites = LoadSlimeSpritesFromFolder("Walk");
                 if (walkSprites == null || walkSprites.Length == 0) walkSprites = idleSprites;
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 8f, loop = true });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 8f, loop = true });
 
                 // 3. Attack (spin)
                 Sprite[] attackSprites = LoadSlimeSpritesFromFolder("spin");
                 if (attackSprites == null || attackSprites.Length == 0) attackSprites = idleSprites;
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 12f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 12f, loop = false });
 
                 // 4. Death (Sleep)
                 Sprite[] deathSprites = LoadSlimeSpritesFromFolder("Sleep");
                 if (deathSprites == null || deathSprites.Length == 0) deathSprites = new Sprite[] { idleSprites[0] };
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
 
                 // 5. Hurt (Jump)
                 Sprite[] hurtSprites = LoadSlimeSpritesFromFolder("Jump");
                 if (hurtSprites == null || hurtSprites.Length == 0) hurtSprites = new Sprite[] { idleSprites[0] };
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
 
                 if (animClips.Count > 0)
                 {
@@ -6295,27 +6295,27 @@ namespace Pulsevania.Core
                 // 1. Idle
                 Sprite[] idleSprites = LoadAssetSprites("Assets/EVil Wizard/Sprites/Idle.png");
                 if (idleSprites != null && idleSprites.Length > 0)
-                    animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 6f, loop = true });
+                    animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 6f, loop = true });
 
                 // 2. Walk
                 Sprite[] walkSprites = LoadAssetSprites("Assets/EVil Wizard/Sprites/Move.png");
                 if (walkSprites == null || walkSprites.Length == 0) walkSprites = idleSprites;
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 8f, loop = true });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Walk, frames = walkSprites, frameRate = 8f, loop = true });
 
                 // 3. Attack
                 Sprite[] attackSprites = LoadAssetSprites("Assets/EVil Wizard/Sprites/Attack.png");
                 if (attackSprites == null || attackSprites.Length == 0) attackSprites = idleSprites;
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Attack, frames = attackSprites, frameRate = 8f, loop = false });
 
                 // 4. Death
                 Sprite[] deathSprites = LoadAssetSprites("Assets/EVil Wizard/Sprites/Death.png");
                 if (deathSprites == null || deathSprites.Length == 0) deathSprites = new Sprite[] { idleSprites[0] };
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Death, frames = deathSprites, frameRate = 8f, loop = false });
 
                 // 5. Hurt
                 Sprite[] hurtSprites = LoadAssetSprites("Assets/EVil Wizard/Sprites/Take Hit.png");
                 if (hurtSprites == null || hurtSprites.Length == 0) hurtSprites = new Sprite[] { idleSprites[0] };
-                animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
+                animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Hurt, frames = hurtSprites, frameRate = 8f, loop = false });
 
                 if (animClips.Count > 0)
                 {
@@ -6329,31 +6329,31 @@ namespace Pulsevania.Core
             string idlePath = GetAssetPathForMonster(behavior, roomLevel, AnimState.Idle);
             Sprite[] idleSpritesNormal = LoadAssetSprites(idlePath);
             if (idleSpritesNormal == null || idleSpritesNormal.Length == 0) return false;
-            animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Idle, frames = idleSpritesNormal, frameRate = 6f, loop = true });
+            animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSpritesNormal, frameRate = 6f, loop = true });
 
             // 2. Load Walk
             string walkPath = GetAssetPathForMonster(behavior, roomLevel, AnimState.Walk);
             Sprite[] walkSpritesNormal = LoadAssetSprites(walkPath);
             if (walkSpritesNormal == null || walkSpritesNormal.Length == 0) walkSpritesNormal = idleSpritesNormal;
-            animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Walk, frames = walkSpritesNormal, frameRate = 8f, loop = true });
+            animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Walk, frames = walkSpritesNormal, frameRate = 8f, loop = true });
 
             // 3. Load Attack
             string attackPath = GetAssetPathForMonster(behavior, roomLevel, AnimState.Attack);
             Sprite[] attackSpritesNormal = LoadAssetSprites(attackPath);
             if (attackSpritesNormal == null || attackSpritesNormal.Length == 0) attackSpritesNormal = idleSpritesNormal;
-            animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Attack, frames = attackSpritesNormal, frameRate = 10f, loop = false });
+            animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Attack, frames = attackSpritesNormal, frameRate = 10f, loop = false });
 
             // 4. Load Death
             string deathPath = GetAssetPathForMonster(behavior, roomLevel, AnimState.Death);
             Sprite[] deathSpritesNormal = LoadAssetSprites(deathPath);
             if (deathSpritesNormal == null || deathSpritesNormal.Length == 0) deathSpritesNormal = new Sprite[] { idleSpritesNormal[0] };
-            animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Death, frames = deathSpritesNormal, frameRate = 8f, loop = false });
+            animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Death, frames = deathSpritesNormal, frameRate = 8f, loop = false });
 
             // 5. Load Hurt
             string hurtPath = GetAssetPathForMonster(behavior, roomLevel, AnimState.Hurt);
             Sprite[] hurtSpritesNormal = LoadAssetSprites(hurtPath);
             if (hurtSpritesNormal == null || hurtSpritesNormal.Length == 0) hurtSpritesNormal = new Sprite[] { idleSpritesNormal[0] };
-            animClips.Add(new SpriteAnimator.AnimationClip { state = AnimState.Hurt, frames = hurtSpritesNormal, frameRate = 8f, loop = false });
+            animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Hurt, frames = hurtSpritesNormal, frameRate = 8f, loop = false });
 
             animator.SetClips(animClips);
             return true;

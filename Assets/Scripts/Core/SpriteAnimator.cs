@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 namespace Pulsevania.Core
 {
@@ -16,10 +17,14 @@ namespace Pulsevania.Core
         Spell
     }
 
+    [Preserve]
     public class SpriteAnimator : MonoBehaviour
     {
-        [System.Serializable]
-        public class AnimationClip
+        // Do not name this AnimationClip — it collides with UnityEngine.AnimationClip
+        // and can abort iOS IL2CPP scene load with CachedReader::OutOfBoundsError.
+        [Serializable]
+        [Preserve]
+        public class SpriteAnimationClip
         {
             public AnimState state;
             public Sprite[] frames;
@@ -28,9 +33,9 @@ namespace Pulsevania.Core
         }
 
         [SerializeField] private SpriteRenderer spriteRenderer;
-        [SerializeField] private List<AnimationClip> clips = new List<AnimationClip>();
+        [SerializeField] private List<SpriteAnimationClip> clips = new List<SpriteAnimationClip>();
 
-        private Dictionary<AnimState, AnimationClip> clipDictionary = new Dictionary<AnimState, AnimationClip>();
+        private Dictionary<AnimState, SpriteAnimationClip> clipDictionary = new Dictionary<AnimState, SpriteAnimationClip>();
         private AnimState currentState = AnimState.Idle;
         private int currentFrame;
         private float frameTimer;
@@ -62,7 +67,7 @@ namespace Pulsevania.Core
         {
             if (clipDictionary.Count == 0 || !clipDictionary.ContainsKey(currentState)) return;
 
-            AnimationClip currentClip = clipDictionary[currentState];
+            SpriteAnimationClip currentClip = clipDictionary[currentState];
             if (currentClip.frames == null || currentClip.frames.Length <= 1) return;
 
             frameTimer += Time.deltaTime;
@@ -111,7 +116,7 @@ namespace Pulsevania.Core
             frameTimer = 0f;
             isLocked = lockAnim;
 
-            AnimationClip currentClip = clipDictionary[state];
+            SpriteAnimationClip currentClip = clipDictionary[state];
             if (currentClip.frames != null && currentClip.frames.Length > 0)
             {
                 spriteRenderer.sprite = currentClip.frames[0];
@@ -119,13 +124,13 @@ namespace Pulsevania.Core
         }
 
         // Editor helper method to build clips
-        public void SetClips(List<AnimationClip> newClips)
+        public void SetClips(List<SpriteAnimationClip> newClips)
         {
             clips = newClips;
             InitializeDictionary();
         }
 
-        public bool TryGetClip(AnimState state, out AnimationClip clip)
+        public bool TryGetClip(AnimState state, out SpriteAnimationClip clip)
         {
             if (clipDictionary != null && clipDictionary.TryGetValue(state, out clip))
             {

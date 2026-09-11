@@ -24450,6 +24450,7 @@ MonoBehaviour:
   rangedCost: 5
   climbSpeed: 4
   spriteAnimator: {fileID: 1972724057}
+  heroAnimator: {fileID: 0}
   currentHP: 100
   maxHP: 100
   extraHearts: 1

@@ -517,9 +517,9 @@ namespace Pulsevania.Editor
 
         private static void SetupPlayerAnimations(SpriteAnimator animator)
         {
-            List<SpriteAnimator.AnimationClip> playerClips = new List<SpriteAnimator.AnimationClip>();
+            List<SpriteAnimator.SpriteAnimationClip> playerClips = new List<SpriteAnimator.SpriteAnimationClip>();
 
-            playerClips.Add(new SpriteAnimator.AnimationClip {
+            playerClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Idle,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Player_Idle_0.png")),
@@ -529,7 +529,7 @@ namespace Pulsevania.Editor
                 loop = true
             });
 
-            playerClips.Add(new SpriteAnimator.AnimationClip {
+            playerClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Walk,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Player_Walk_0.png")),
@@ -539,7 +539,7 @@ namespace Pulsevania.Editor
                 loop = true
             });
 
-            playerClips.Add(new SpriteAnimator.AnimationClip {
+            playerClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Jump,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Player_Jump.png"))
@@ -548,7 +548,7 @@ namespace Pulsevania.Editor
                 loop = false
             });
 
-            playerClips.Add(new SpriteAnimator.AnimationClip {
+            playerClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Attack,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Player_Attack.png")),
@@ -558,7 +558,7 @@ namespace Pulsevania.Editor
                 loop = false
             });
 
-            playerClips.Add(new SpriteAnimator.AnimationClip {
+            playerClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Hurt,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Player_Hurt.png")),
@@ -568,7 +568,7 @@ namespace Pulsevania.Editor
                 loop = false
             });
 
-            playerClips.Add(new SpriteAnimator.AnimationClip {
+            playerClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Death,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Player_Death.png"))
@@ -582,9 +582,9 @@ namespace Pulsevania.Editor
 
         private static void SetupEnemyAnimations(SpriteAnimator animator)
         {
-            List<SpriteAnimator.AnimationClip> enemyClips = new List<SpriteAnimator.AnimationClip>();
+            List<SpriteAnimator.SpriteAnimationClip> enemyClips = new List<SpriteAnimator.SpriteAnimationClip>();
 
-            enemyClips.Add(new SpriteAnimator.AnimationClip {
+            enemyClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Idle,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Enemy_Idle_0.png")),
@@ -594,7 +594,7 @@ namespace Pulsevania.Editor
                 loop = true
             });
 
-            enemyClips.Add(new SpriteAnimator.AnimationClip {
+            enemyClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Walk,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Enemy_Walk_0.png")),
@@ -604,7 +604,7 @@ namespace Pulsevania.Editor
                 loop = true
             });
 
-            enemyClips.Add(new SpriteAnimator.AnimationClip {
+            enemyClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Attack,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Enemy_Idle_1.png")),
@@ -614,7 +614,7 @@ namespace Pulsevania.Editor
                 loop = false
             });
 
-            enemyClips.Add(new SpriteAnimator.AnimationClip {
+            enemyClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Hurt,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Enemy_Idle_0.png"))
@@ -623,7 +623,7 @@ namespace Pulsevania.Editor
                 loop = false
             });
 
-            enemyClips.Add(new SpriteAnimator.AnimationClip {
+            enemyClips.Add(new SpriteAnimator.SpriteAnimationClip {
                 state = AnimState.Death,
                 frames = new Sprite[] {
                     AssetDatabase.LoadAssetAtPath<Sprite>(Path.Combine(SpritePath, "Enemy_Idle_1.png"))

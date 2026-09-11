@@ -16,7 +16,13 @@ namespace Pulsevania.Core
                 yield return new WaitForSeconds(delayBeforeLoad);
             }
 
-            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(targetSceneName);
+            string sceneName = string.IsNullOrEmpty(targetSceneName) ? "SampleScene" : targetSceneName;
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
+            if (asyncLoad == null)
+            {
+                int fallbackIndex = SceneManager.sceneCountInBuildSettings > 1 ? 1 : 0;
+                asyncLoad = SceneManager.LoadSceneAsync(fallbackIndex);
+            }
             if (asyncLoad != null)
             {
                 asyncLoad.allowSceneActivation = true;

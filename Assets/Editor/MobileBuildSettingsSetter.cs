@@ -24,7 +24,11 @@ namespace Pulsevania.Editor
 
             // 3. Configure iOS Target SDK
             PlayerSettings.iOS.sdkVersion = iOSSdkVersion.DeviceSDK;
-            Debug.Log("[Pulsevania] iOS SDK version set to Device SDK.");
+            PlayerSettings.SetScriptingBackend(BuildTargetGroup.iOS, ScriptingImplementation.IL2CPP);
+            PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.iOS, ManagedStrippingLevel.Disabled);
+            PlayerSettings.stripEngineCode = false;
+            PlayerSettings.SetArchitecture(BuildTargetGroup.iOS, 1);
+            Debug.Log("[Pulsevania] iOS SDK version set to Device SDK (IL2CPP, stripping disabled).");
 
             // 4. Set graphics APIs (Vulkan and GLES3 for Android, Metal for iOS) for modern mobile performance
             PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, true);

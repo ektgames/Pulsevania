@@ -74,38 +74,16 @@ namespace Pulsevania.EditorTools
 
         private static string[] GetBuildScenes()
         {
-            var scenes = EditorBuildSettings.scenes;
-            var scenePaths = new List<string>();
-
-            foreach (var scene in scenes)
+            string defaultScene = "Assets/Scenes/SampleScene.unity";
+            if (!File.Exists(defaultScene))
             {
-                if (scene.enabled && !string.IsNullOrEmpty(scene.path))
-                {
-                    scenePaths.Add(scene.path);
-                }
+                throw new FileNotFoundException("iOS build scene missing: " + defaultScene);
             }
 
-            if (scenePaths.Count == 0)
-            {
-                string defaultScene = "Assets/Scenes/SampleScene.unity";
-                if (File.Exists(defaultScene))
-                {
-                    scenePaths.Add(defaultScene);
-                }
-                else
-                {
-                    string[] foundScenes = Directory.GetFiles("Assets", "*.unity", SearchOption.AllDirectories);
-                    if (foundScenes.Length > 0)
-                    {
-                        scenePaths.Add(foundScenes[0]);
-                    }
-                }
-            }
-
-            string logScenes = $"[BuildScript] Including {scenePaths.Count} scene(s) in build: " + string.Join(", ", scenePaths);
+            string logScenes = "[BuildScript] Including 1 scene in build (diagnostics excluded): " + defaultScene;
             Debug.Log(logScenes);
             Console.WriteLine(logScenes);
-            return scenePaths.ToArray();
+            return new[] { defaultScene };
         }
     }
 }
