@@ -74,16 +74,25 @@ namespace Pulsevania.EditorTools
 
         private static string[] GetBuildScenes()
         {
-            string defaultScene = "Assets/Scenes/SampleScene.unity";
-            if (!File.Exists(defaultScene))
+            string bootScene = "Assets/Scenes/AppBootstrap.unity";
+            string gameScene = "Assets/Scenes/SampleScene.unity";
+            if (!File.Exists(gameScene))
             {
-                throw new FileNotFoundException("iOS build scene missing: " + defaultScene);
+                throw new FileNotFoundException("iOS build scene missing: " + gameScene);
             }
 
-            string logScenes = "[BuildScript] Including 1 scene in build (diagnostics excluded): " + defaultScene;
-            Debug.Log(logScenes);
-            Console.WriteLine(logScenes);
-            return new[] { defaultScene };
+            if (File.Exists(bootScene))
+            {
+                string logScenes = "[BuildScript] Including boot + game scenes: " + bootScene + ", " + gameScene;
+                Debug.Log(logScenes);
+                Console.WriteLine(logScenes);
+                return new[] { bootScene, gameScene };
+            }
+
+            string logGameOnly = "[BuildScript] Including game scene: " + gameScene;
+            Debug.Log(logGameOnly);
+            Console.WriteLine(logGameOnly);
+            return new[] { gameScene };
         }
     }
 }

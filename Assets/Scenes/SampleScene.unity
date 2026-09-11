@@ -24185,35 +24185,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.SpriteAnimator
   spriteRenderer: {fileID: 0}
-  clips:
-  - state: 0
-    frames:
-    - {fileID: -6627723890808020971, guid: ef283c7d9d0afbc4994fafddc4d10a40, type: 3}
-    - {fileID: 4089636935794680599, guid: 55ece57f1e29a47499ecebf9ff06adf7, type: 3}
-    frameRate: 3
-    loop: 1
-  - state: 1
-    frames:
-    - {fileID: 5533885124236258091, guid: eb030b27cdd5cf248bb7a79869e0bb15, type: 3}
-    - {fileID: -800311865756677209, guid: 5e83134e2dbbf124f8d41eaa97c886cb, type: 3}
-    frameRate: 5
-    loop: 1
-  - state: 3
-    frames:
-    - {fileID: 4089636935794680599, guid: 55ece57f1e29a47499ecebf9ff06adf7, type: 3}
-    - {fileID: -6627723890808020971, guid: ef283c7d9d0afbc4994fafddc4d10a40, type: 3}
-    frameRate: 6
-    loop: 0
-  - state: 4
-    frames:
-    - {fileID: -6627723890808020971, guid: ef283c7d9d0afbc4994fafddc4d10a40, type: 3}
-    frameRate: 6
-    loop: 0
-  - state: 5
-    frames:
-    - {fileID: 4089636935794680599, guid: 55ece57f1e29a47499ecebf9ff06adf7, type: 3}
-    frameRate: 1
-    loop: 0
+  clips: []
 --- !u!114 &1970253850
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24470,41 +24442,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.SpriteAnimator
   spriteRenderer: {fileID: 0}
-  clips:
-  - state: 0
-    frames:
-    - {fileID: 8066492783217207803, guid: ece1bac35776e1a459ebdbd8555cde42, type: 3}
-    - {fileID: -7164028333803484172, guid: db2418577c54156448b0aa7d8767f279, type: 3}
-    frameRate: 3
-    loop: 1
-  - state: 1
-    frames:
-    - {fileID: -2588136552564174841, guid: 359d9ab381a89db42a9d3dbe26fa54ea, type: 3}
-    - {fileID: -3407970611077491814, guid: 559baf423edd30744b57effb1d6c7b8e, type: 3}
-    frameRate: 6
-    loop: 1
-  - state: 2
-    frames:
-    - {fileID: -4142276880962872504, guid: c018319ab961ab842ab4cb4496e2ed9b, type: 3}
-    frameRate: 1
-    loop: 0
-  - state: 3
-    frames:
-    - {fileID: -7562844120716128163, guid: b82801236a1e0da44848e27bef5b3913, type: 3}
-    - {fileID: 8066492783217207803, guid: ece1bac35776e1a459ebdbd8555cde42, type: 3}
-    frameRate: 8
-    loop: 0
-  - state: 4
-    frames:
-    - {fileID: 5165073382359461468, guid: 48532bfe9863dd447b3a0a9e856cf298, type: 3}
-    - {fileID: 8066492783217207803, guid: ece1bac35776e1a459ebdbd8555cde42, type: 3}
-    frameRate: 6
-    loop: 0
-  - state: 5
-    frames:
-    - {fileID: -625099412930161800, guid: e13d5092a174c4148b0105b5c5178009, type: 3}
-    frameRate: 1
-    loop: 0
+  clips: []
 --- !u!114 &1972724058
 MonoBehaviour:
   m_ObjectHideFlags: 0
