@@ -68,6 +68,7 @@ namespace Pulsevania.EditorTools
 
         public static void BuildWindowsSmokeTest()
         {
+            RuntimeVisualsBuilder.Prepare();
             ValidateScenes();
             Directory.CreateDirectory("Builds/LaunchSmoke");
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d48306e9559bbc488e1293dbcb7e646, type: 3}
+  m_Name: attack_1
+  m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.RuntimeSpriteSheet
+  frames:
+  - {fileID: -3297650188656544483, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 42540282074972397, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 7784224842844196056, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: -934869651545113358, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 6840057854116410537, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: -6833050414481198576, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 1427936120346131835, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: -1450166047590963086, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 3408046652129433154, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: -4386850089186596021, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: -8312566940136299171, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 682248077354982294, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: 1210310199726057525, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}
+  - {fileID: -3342915049222643903, guid: 0bcdf9b86ee58b744b6d364d19b382c1, type: 3}

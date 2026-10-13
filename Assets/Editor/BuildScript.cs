@@ -12,6 +12,7 @@ namespace Pulsevania.EditorTools
         [MenuItem("Pulsevania/Build/iOS (Export Xcode)")]
         public static void BuildiOS()
         {
+            RuntimeVisualsBuilder.Prepare();
             LaunchValidation.ValidateScenes();
             string[] scenes = GetBuildScenes();
             string buildPath = "Builds/iOS";

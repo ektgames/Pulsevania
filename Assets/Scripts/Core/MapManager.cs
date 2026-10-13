@@ -5099,12 +5099,10 @@ namespace Pulsevania.Core
                 sr.color = Color.white;
                 animator = child.AddComponent<SpriteAnimator>();
 
-#if UNITY_EDITOR
                 if (behavior != EnemyGuardian.MonsterBehavior.Boss || (behavior == EnemyGuardian.MonsterBehavior.Boss && (roomLevel == 10 || roomLevel == 20 || roomLevel == 30 || roomLevel == 40)))
                 {
                     loadedCustom = LoadCustomMonsterAnimations(animator, behavior, roomLevel);
                 }
-#endif
             }
 
             Color baseColor = Color.white; // Kept for method compatibility, colors resolved procedurally
@@ -6166,7 +6164,6 @@ namespace Pulsevania.Core
             activeRoomEntities.Add(noteGo);
         }
 
-#if UNITY_EDITOR
         private bool LoadCustomMonsterAnimations(SpriteAnimator animator, EnemyGuardian.MonsterBehavior behavior, int roomLevel)
         {
             List<SpriteAnimator.SpriteAnimationClip> animClips = new List<SpriteAnimator.SpriteAnimationClip>();
@@ -6222,7 +6219,8 @@ namespace Pulsevania.Core
 
                 // 1. Idle (idle_01 to idle_06)
                 Sprite[] idleSprites = LoadMultipleAssetSprites(folder, "idle", 6, "00");
-                if (idleSprites != null && idleSprites.Length > 0)
+                if (idleSprites == null || idleSprites.Length == 0) return false;
+                if (idleSprites.Length > 0)
                     animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 8f, loop = true });
 
                 // 2. Walk (walk_01 to walk_06)
@@ -6258,7 +6256,8 @@ namespace Pulsevania.Core
             {
                 // 1. Idle
                 Sprite[] idleSprites = LoadSlimeSpritesFromFolder("Idle");
-                if (idleSprites != null && idleSprites.Length > 0)
+                if (idleSprites == null || idleSprites.Length == 0) return false;
+                if (idleSprites.Length > 0)
                     animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 6f, loop = true });
 
                 // 2. Walk
@@ -6294,7 +6293,8 @@ namespace Pulsevania.Core
             {
                 // 1. Idle
                 Sprite[] idleSprites = LoadAssetSprites("Assets/EVil Wizard/Sprites/Idle.png");
-                if (idleSprites != null && idleSprites.Length > 0)
+                if (idleSprites == null || idleSprites.Length == 0) return false;
+                if (idleSprites.Length > 0)
                     animClips.Add(new SpriteAnimator.SpriteAnimationClip { state = AnimState.Idle, frames = idleSprites, frameRate = 6f, loop = true });
 
                 // 2. Walk
@@ -6361,32 +6361,12 @@ namespace Pulsevania.Core
 
         private Sprite[] LoadSlimeSpritesFromFolder(string folderName)
         {
-            string folderPath = "Assets/Slime/" + folderName;
-            if (!System.IO.Directory.Exists(folderPath))
-            {
-                if (folderName == "spin" && System.IO.Directory.Exists("Assets/Slime/Spin")) folderPath = "Assets/Slime/Spin";
-                else if (folderName == "Walk" && System.IO.Directory.Exists("Assets/Slime/walk")) folderPath = "Assets/Slime/walk";
-                else return null;
-            }
-
-            string[] files = System.IO.Directory.GetFiles(folderPath, "*.png");
-            System.Collections.Generic.List<Sprite> list = new System.Collections.Generic.List<Sprite>();
-            foreach (var file in files)
-            {
-                string assetPath = file.Replace("\\", "/");
-                Sprite s = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-                if (s != null)
-                {
-                    list.Add(s);
-                }
-            }
-            list.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
-            return list.ToArray();
+            return RuntimeSpriteSheet.Load("Assets/Slime/" + folderName);
         }
 
         private Sprite[] LoadAssetSprites(string path)
         {
-            object[] assets = UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path);
+            object[] assets = RuntimeSpriteSheet.Load(path);
             if (assets == null || assets.Length == 0) return null;
 
             List<Sprite> sprites = new List<Sprite>();
@@ -6414,7 +6394,8 @@ namespace Pulsevania.Core
             {
                 string frameStr = i.ToString(format);
                 string fullPath = $"{folderPath}/{filePrefix}_{frameStr}.png";
-                Sprite sp = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(fullPath);
+                Sprite[] frames = RuntimeSpriteSheet.Load(fullPath);
+                Sprite sp = frames.Length > 0 ? frames[0] : null;
                 if (sp != null)
                 {
                     sprites.Add(sp);
@@ -6429,7 +6410,7 @@ namespace Pulsevania.Core
 
         private Sprite[] LoadBringerSprites(string path)
         {
-            object[] assets = UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path);
+            object[] assets = RuntimeSpriteSheet.Load(path);
             if (assets == null || assets.Length == 0) return null;
 
             List<Sprite> sprites = new List<Sprite>();
@@ -6475,7 +6456,6 @@ namespace Pulsevania.Core
             System.Array.Copy(source, startIndex, result, 0, count);
             return result;
         }
-#endif
 
         private string GetAssetPathForMonster(EnemyGuardian.MonsterBehavior behavior, int roomLevel, AnimState state)
         {

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d48306e9559bbc488e1293dbcb7e646, type: 3}
+  m_Name: fall
+  m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.RuntimeSpriteSheet
+  frames:
+  - {fileID: -6732294965104032732, guid: c4b05d48f9d478a4ab2595d3d513a94b, type: 3}
+  - {fileID: -8269792095265539674, guid: c4b05d48f9d478a4ab2595d3d513a94b, type: 3}
+  - {fileID: -2808048858112833009, guid: c4b05d48f9d478a4ab2595d3d513a94b, type: 3}
+  - {fileID: -4388410108566013805, guid: c4b05d48f9d478a4ab2595d3d513a94b, type: 3}
+  - {fileID: -200338194739338904, guid: c4b05d48f9d478a4ab2595d3d513a94b, type: 3}

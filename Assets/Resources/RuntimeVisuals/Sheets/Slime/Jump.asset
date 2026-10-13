@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d48306e9559bbc488e1293dbcb7e646, type: 3}
+  m_Name: Jump
+  m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.RuntimeSpriteSheet
+  frames:
+  - {fileID: 21300000, guid: bedcd5735e0f5a946a5d387da8942def, type: 3}
+  - {fileID: 21300000, guid: 06b80deab58ac2a428d751d6e565926d, type: 3}
+  - {fileID: 21300000, guid: 411bfa28278b0b54cabcbbfe948d2ef0, type: 3}
+  - {fileID: 21300000, guid: 409f487957940e644bdfd72112c14aa1, type: 3}
+  - {fileID: 21300000, guid: 8a9808fdb88e3fe4db268c2ba8fde6ac, type: 3}
+  - {fileID: 21300000, guid: d932d95626169104391da63f0aa94783, type: 3}
+  - {fileID: 21300000, guid: 3072d2b71641cf041a278601cc17c19a, type: 3}
+  - {fileID: 21300000, guid: 3bf6fa78488bcf446b92b91725838803, type: 3}
+  - {fileID: 21300000, guid: d62020c281bad4347bd8c474449d786f, type: 3}

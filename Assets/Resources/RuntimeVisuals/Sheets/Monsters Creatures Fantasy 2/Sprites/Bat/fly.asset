@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d48306e9559bbc488e1293dbcb7e646, type: 3}
+  m_Name: fly
+  m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.RuntimeSpriteSheet
+  frames:
+  - {fileID: 5352286359449648278, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: 6843129032921346866, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: 6625348985452500428, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: -577472684307798074, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: -7030490577846672973, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: 7551582495221066229, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: 7052353571005762725, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: 5571602402917622367, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: -46468130576277366, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: 6967819863540319931, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}
+  - {fileID: -2124115683389910881, guid: ae2c84d4e78e8a243a715eebb536dcfc, type: 3}

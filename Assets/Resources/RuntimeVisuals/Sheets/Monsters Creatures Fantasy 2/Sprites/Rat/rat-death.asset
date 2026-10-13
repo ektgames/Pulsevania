@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d48306e9559bbc488e1293dbcb7e646, type: 3}
+  m_Name: rat-death
+  m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.RuntimeSpriteSheet
+  frames:
+  - {fileID: 9153557497979434003, guid: 288a5a94d8205c7408388942ab4a069d, type: 3}
+  - {fileID: -1950670873418907786, guid: 288a5a94d8205c7408388942ab4a069d, type: 3}
+  - {fileID: 509030082206802883, guid: 288a5a94d8205c7408388942ab4a069d, type: 3}
+  - {fileID: -3280853365089037962, guid: 288a5a94d8205c7408388942ab4a069d, type: 3}
+  - {fileID: -7374815061640450194, guid: 288a5a94d8205c7408388942ab4a069d, type: 3}
+  - {fileID: 2154126136119794554, guid: 288a5a94d8205c7408388942ab4a069d, type: 3}

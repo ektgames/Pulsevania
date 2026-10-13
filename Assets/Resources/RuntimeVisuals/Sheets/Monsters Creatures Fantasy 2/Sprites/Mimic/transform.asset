@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d48306e9559bbc488e1293dbcb7e646, type: 3}
+  m_Name: transform
+  m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.RuntimeSpriteSheet
+  frames:
+  - {fileID: -5384612487663699926, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}
+  - {fileID: -7135677678594204219, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}
+  - {fileID: 6269733768383659668, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}
+  - {fileID: -5204148943214433501, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}
+  - {fileID: -666561413237005732, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}
+  - {fileID: 7026601104423170366, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}
+  - {fileID: -987889600475708168, guid: e5726b2ea09d52d4d90da8b9a59be0f2, type: 3}

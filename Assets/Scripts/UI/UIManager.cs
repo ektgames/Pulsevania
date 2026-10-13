@@ -4199,10 +4199,10 @@ namespace Pulsevania.Core
         {
             if (cachedHeroPortraitSprite != null) return cachedHeroPortraitSprite;
 
-            string path = System.IO.Path.Combine(Application.dataPath, "Sprites/hero_portrait.png");
-            if (System.IO.File.Exists(path))
+            TextAsset portraitData = Resources.Load<TextAsset>("RuntimeVisuals/Portraits/hero_portrait");
+            if (portraitData != null)
             {
-                byte[] fileData = System.IO.File.ReadAllBytes(path);
+                byte[] fileData = portraitData.bytes;
                 Texture2D tex = new Texture2D(2, 2);
                 if (tex.LoadImage(fileData))
                 {
@@ -6033,10 +6033,14 @@ namespace Pulsevania.Core
                 return cachedStorySprites[cacheKey];
             }
 
-            string path = System.IO.Path.Combine(Application.dataPath, "Sprites/" + filename);
-            if (!System.IO.File.Exists(path)) return null;
+            TextAsset imageData = Resources.Load<TextAsset>("RuntimeVisuals/Portraits/" + System.IO.Path.GetFileNameWithoutExtension(filename));
+            if (imageData == null)
+            {
+                Debug.LogError("[RuntimeVisuals] Missing story portrait: " + filename);
+                return null;
+            }
 
-            byte[] data = System.IO.File.ReadAllBytes(path);
+            byte[] data = imageData.bytes;
             Texture2D tex = new Texture2D(2, 2);
             tex.LoadImage(data);
             tex.filterMode = FilterMode.Point;

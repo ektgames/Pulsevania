@@ -134,40 +134,19 @@ namespace Pulsevania.Core
                 visualT.localPosition = new Vector3(0f, -0.7f, 0f);
             }
 
-#if UNITY_EDITOR
             if (heroAnimator == null)
             {
-                GameObject heroPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Hero Knight - Pixel Art/Demo/HeroKnight.prefab");
+                var heroPrefab = Resources.Load<GameObject>("RuntimeVisuals/HeroVisual");
                 if (heroPrefab != null)
                 {
-                    GameObject heroVisual = Instantiate(heroPrefab, transform);
+                    var heroVisual = Instantiate(heroPrefab, transform);
                     heroVisual.name = "HeroKnightVisual";
                     heroVisual.transform.localPosition = new Vector3(0f, -0.7f, 0f);
-                    
-                    var hkScript = heroVisual.GetComponent<HeroKnight>();
-                    if (hkScript != null) Destroy(hkScript);
-
-                    var hkRb = heroVisual.GetComponent<Rigidbody2D>();
-                    if (hkRb != null) Destroy(hkRb);
-
-                    var hkCol = heroVisual.GetComponent<BoxCollider2D>();
-                    if (hkCol != null) Destroy(hkCol);
-
-                    Transform groundSensor = heroVisual.transform.Find("GroundSensor");
-                    if (groundSensor != null) groundSensor.gameObject.SetActive(false);
-                    
-                    for (int i = 1; i <= 2; i++)
-                    {
-                        Transform wsl = heroVisual.transform.Find("WallSensor_L" + i);
-                        if (wsl != null) wsl.gameObject.SetActive(false);
-                        Transform wsr = heroVisual.transform.Find("WallSensor_R" + i);
-                        if (wsr != null) wsr.gameObject.SetActive(false);
-                    }
-
                     heroAnimator = heroVisual.GetComponent<Animator>();
                 }
+                else Debug.LogError("[RuntimeVisuals] Hero visual missing from player resources.");
             }
-#endif
+
 
             if (heroAnimator != null)
             {
