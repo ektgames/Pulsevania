@@ -20,8 +20,6 @@ namespace Pulsevania.Core
     [Preserve]
     public class SpriteAnimator : MonoBehaviour
     {
-        // Do not name this AnimationClip — it collides with UnityEngine.AnimationClip
-        // and can abort iOS IL2CPP scene load with CachedReader::OutOfBoundsError.
         [Serializable]
         [Preserve]
         public class SpriteAnimationClip

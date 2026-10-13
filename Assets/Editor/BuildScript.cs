@@ -12,6 +12,7 @@ namespace Pulsevania.EditorTools
         [MenuItem("Pulsevania/Build/iOS (Export Xcode)")]
         public static void BuildiOS()
         {
+            LaunchValidation.ValidateScenes();
             string[] scenes = GetBuildScenes();
             string buildPath = "Builds/iOS";
 
@@ -33,7 +34,7 @@ namespace Pulsevania.EditorTools
                 scenes = scenes,
                 locationPathName = buildPath,
                 target = BuildTarget.iOS,
-                options = BuildOptions.None
+                options = BuildOptions.StrictMode | BuildOptions.CleanBuildCache
             };
 
             BuildReport report = BuildPipeline.BuildPlayer(options);

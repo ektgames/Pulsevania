@@ -2812,7 +2812,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 197113781}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 483926552}
+  m_Script: {fileID: 11500000, guid: cbfc7874c7964ae19094e7015ffdfc7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.LockedDoor
   requiresKey: 1
@@ -5811,7 +5811,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 479791438}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1685268362}
+  m_Script: {fileID: 11500000, guid: fc2ffe96382147a382be252c6e408b2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.MobileHoldButton
 --- !u!114 &479791441
@@ -5852,21 +5852,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 479791438}
   m_CullTransparentMesh: 1
---- !u!115 &483926552
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: LockedDoor
-  m_Namespace: Pulsevania.Core
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &502680238
 GameObject:
   m_ObjectHideFlags: 0
@@ -9104,6 +9089,7 @@ MonoBehaviour:
   btnOpenInventory: {fileID: 0}
   inventoryGridParent: {fileID: 0}
   skeletonEquipmentParent: {fileID: 0}
+  currentLanguage: 0
 --- !u!114 &697404661
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11388,7 +11374,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 862998948}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1685268362}
+  m_Script: {fileID: 11500000, guid: fc2ffe96382147a382be252c6e408b2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.MobileHoldButton
 --- !u!114 &862998951
@@ -18230,7 +18216,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1357359951}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1685268362}
+  m_Script: {fileID: 11500000, guid: fc2ffe96382147a382be252c6e408b2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.MobileHoldButton
 --- !u!114 &1357359954
@@ -19731,7 +19717,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1494423464}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 1685268362}
+  m_Script: {fileID: 11500000, guid: fc2ffe96382147a382be252c6e408b2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pulsevania.Core.MobileHoldButton
 --- !u!114 &1494423467
@@ -21376,21 +21362,6 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
---- !u!115 &1685268362
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: MobileHoldButton
-  m_Namespace: Pulsevania.Core
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &1733770518
 GameObject:
   m_ObjectHideFlags: 0

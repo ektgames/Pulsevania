@@ -13,16 +13,17 @@ namespace Pulsevania.Core
         {
             if (delayBeforeLoad > 0f)
             {
-                yield return new WaitForSeconds(delayBeforeLoad);
+                yield return new WaitForSecondsRealtime(delayBeforeLoad);
             }
 
             string sceneName = string.IsNullOrEmpty(targetSceneName) ? "SampleScene" : targetSceneName;
-            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
-            if (asyncLoad == null)
+            if (!Application.CanStreamedLevelBeLoaded(sceneName))
             {
-                int fallbackIndex = SceneManager.sceneCountInBuildSettings > 1 ? 1 : 0;
-                asyncLoad = SceneManager.LoadSceneAsync(fallbackIndex);
+                Debug.LogError("[Launch] Required game scene is missing from the build: " + sceneName);
+                yield break;
             }
+            Debug.Log("[Launch] Loading " + sceneName + " with Unity " + Application.unityVersion);
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
             if (asyncLoad != null)
             {
                 asyncLoad.allowSceneActivation = true;
@@ -30,6 +31,7 @@ namespace Pulsevania.Core
                 {
                     yield return null;
                 }
+                Debug.Log("[Launch] Game scene loaded.");
             }
         }
     }
